@@ -2,7 +2,11 @@ use axum::{
     routing::get, Error, Router
 };
 
-pub fn get_router() -> Result<Router, Error> {
-    let router = Router::new().route("/", get(|| async { "Hello, World!" }));
-    Ok(router)
+pub struct RouterBuilder {}
+
+impl RouterBuilder {
+    pub fn build() -> Result<Router, Error> {
+        let router = Router::new().route("/", get(|| async { "Hello, World!" }));
+        Ok(router)
+    }
 }
