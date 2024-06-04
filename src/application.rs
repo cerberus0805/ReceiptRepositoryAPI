@@ -1,7 +1,7 @@
 use axum::{ Error, Router };
 
 use crate::configuration::Config;
-use crate::router::get_router;
+use crate::router::RouterBuilder;
 
 pub struct Application {
     router: Router,
@@ -12,7 +12,7 @@ impl Application {
     pub async fn build(settings: Config) -> Result<Self, Error> {
         let address = format!("{}:{}", settings.host, settings.port);
 
-        let my_router = get_router().expect("Get router failed.");
+        let my_router = RouterBuilder::build().expect("Get router failed.");
 
         // run our app with hyper, listening globally on the specified address
         let my_listener = tokio::net::TcpListener::bind(address).await.unwrap();
