@@ -5,9 +5,14 @@ pub struct Config {
     pub port: u16
 }
 
-pub fn get_config() -> Result<Config, Box<dyn Error>> {
-    Ok(Config {
-        host: "0.0.0.0".to_string(),
-        port: 3000
-    })
+pub struct  ConfigBuilder {}
+
+impl ConfigBuilder {
+    pub fn get_config() -> Result<Config, Box<dyn Error>> {
+        Ok(Config {
+            host: "0.0.0.0".to_string(),
+            port: 3000
+        })
+    }
 }
+
