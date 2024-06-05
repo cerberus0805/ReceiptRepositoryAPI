@@ -1,12 +1,16 @@
 use axum::{
-    routing::get, Error, Router
+    routing::get, Router
 };
 
-pub struct RouterBuilder {}
+pub struct AppRouter {
+    pub router: Router
+}
 
-impl RouterBuilder {
-    pub fn build() -> Result<Router, Error> {
+impl AppRouter {
+    pub fn new() -> Self {
         let router = Router::new().route("/", get(|| async { "Hello, World!" }));
-        Ok(router)
+        Self {
+            router
+        }
     }
 }

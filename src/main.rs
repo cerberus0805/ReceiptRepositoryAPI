@@ -1,9 +1,13 @@
+use receipt_repository_api::configuration::AppConfig;
+use receipt_repository_api::router::AppRouter;
+use receipt_repository_api::listener::AppListener;
 use receipt_repository_api::application::Application;
-use receipt_repository_api::configuration::*;
 
 #[tokio::main]
 async fn main() {
-    let settings = ConfigBuilder::get_config().expect("Get configuration error");
-    let app = Application::build(settings).await.unwrap();
+    let settings = AppConfig::new();
+    let router = AppRouter::new();
+    let listener = AppListener::new(settings.get_address()).await.expect("TCP listener should be created successfully.");
+    let app = Application::new(router, listener);
     app.run().await;
 }
