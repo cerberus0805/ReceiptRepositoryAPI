@@ -1,29 +1,20 @@
-use axum::{ Error, Router };
-
-use crate::configuration::Config;
-use crate::router::RouterBuilder;
+use crate::router::AppRouter;
+use crate::listener::AppListener;
 
 pub struct Application {
-    router: Router,
-    listener: tokio::net::TcpListener
+    app_router: AppRouter,
+    app_listener: AppListener
 }
 
 impl Application {
-    pub async fn build(settings: Config) -> Result<Self, Error> {
-        let address = format!("{}:{}", settings.host, settings.port);
-
-        let my_router = RouterBuilder::build().expect("Get router failed.");
-
-        // run our app with hyper, listening globally on the specified address
-        let my_listener = tokio::net::TcpListener::bind(address).await.unwrap();
-    
-        Ok(Self {
-            router: my_router,
-            listener: my_listener
-        })
+    pub fn new(app_router: AppRouter, app_listener: AppListener) -> Self {
+        Self {
+            app_router,
+            app_listener
+        }
     }
 
     pub async fn run(self) {
-        axum::serve(self.listener, self.router).await.unwrap();
+        axum::serve(self.app_listener.listener, self.app_router.router).await.unwrap();
     }
 }
