@@ -5,7 +5,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn new() -> Self {
-        // TODO: extract them from other config file/environment
+        // TODO: extract settings from other config files or environment
         Self {
             host: "0.0.0.0".to_string(),
             port: 3000
