@@ -10,7 +10,7 @@ pub struct AppRouter {
 
 impl AppRouter {
     pub fn new() -> Self {
-        let router = Router::new().route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_one_receipt));
+        let router = Router::new().route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt));
         Self {
             router
         }
