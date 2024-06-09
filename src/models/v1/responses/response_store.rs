@@ -1,3 +1,6 @@
+use serde::Serialize;
+
+#[derive(Serialize)]
 pub struct ResponseStore {
     pub id: i32,
     pub name: String,
