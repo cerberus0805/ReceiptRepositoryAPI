@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
 use super::{response_currency::ResponseCurrency, response_inventory::ResponseInventory, response_store::ResponseStore};
+use serde::Serialize;
 
+#[derive(Serialize)]
 pub struct ResponseReceipt {
     pub id: i32,
     pub transaction_date: NaiveDateTime,
@@ -10,6 +12,7 @@ pub struct ResponseReceipt {
     pub inventories: Vec<ResponseInventory>
 }
 
+#[derive(Serialize)]
 pub struct ReponseReceiptPayload {
     pub data: Option<ResponseReceipt>,
     pub error: Option<String>
