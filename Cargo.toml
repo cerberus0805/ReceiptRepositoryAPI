@@ -5,6 +5,9 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.5"
+bigdecimal = { version = "0.4.4", features = ["serde"] }
 chrono = { version = "0.4.38", features = ["default", "serde"] }
+diesel = { version = "2.2.1", features = ["postgres", "extras"] }
+dotenvy = "0.15.7"
 serde = { version = "1.0.203", features = ["std", "serde_derive"] }
 tokio = { version = "1.38.0", features = ["full"] }

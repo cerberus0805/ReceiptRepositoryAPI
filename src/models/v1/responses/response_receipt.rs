@@ -1,5 +1,9 @@
 use chrono::NaiveDateTime;
-use super::{response_currency::ResponseCurrency, response_inventory::ResponseInventory, response_store::ResponseStore};
+use super::{
+    response_currency::ResponseCurrency, 
+    response_inventory::ResponseInventory, 
+    response_store::ResponseStore
+};
 use serde::Serialize;
 
 #[derive(Serialize)]
