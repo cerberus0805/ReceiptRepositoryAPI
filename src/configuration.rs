@@ -1,10 +1,10 @@
 use dotenvy::dotenv;
-use std::{env, sync::Arc};
+use std::env;
 
 pub struct AppConfig {
     host: String,
     port: u16,
-    db_url: Arc<String>
+    db_url: String
 }
 
 impl AppConfig {
@@ -15,7 +15,7 @@ impl AppConfig {
         Self {
             host: "0.0.0.0".to_string(),
             port: 3000,
-            db_url: Arc::new(db_url)
+            db_url
         }
     }
 
