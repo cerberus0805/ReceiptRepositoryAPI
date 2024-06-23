@@ -1,21 +1,12 @@
 use bigdecimal::ToPrimitive;
 use diesel::{
-    query_dsl::{
-        methods::FilterDsl, 
-        methods::SelectDsl
-    }, 
-    ExpressionMethods, 
-    RunQueryDsl, SelectableHelper
+    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
         entities::{
-            entity_currency::EntityCurrency, 
-            entity_inventory::EntityInventory, 
-            entity_product::EntityProduct, 
-            entity_receipt::EntityReceipt, 
-            entity_store::EntityStore
+            entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
         }, 
         responses::{
             response_currency::ResponseCurrency, 
@@ -46,42 +37,30 @@ impl ReceiptService {
     pub async fn get_receipt(&self, id: i32) -> Result<ResponseReceipt, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
 
-        let receipt = 
+        let receipt_query = 
             receipts::table
+                .inner_join(currencies::table)
+                .inner_join(stores::table)
                 .filter(receipts::id.eq(id))
-                .select(EntityReceipt::as_select())
-                .get_result(conn)?;
-        
-        let store = 
-            stores::table.filter(stores::id.eq(receipt.store_id))
-            .select(EntityStore::as_select())
-            .get_result(conn)?;
+                .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let currency = 
-            currencies::table.filter(currencies::id.eq(receipt.currency_id))
-            .select(EntityCurrency::as_select())
-            .get_result(conn)?;
+        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
 
-        let inventories = 
-            inventories::table.filter(inventories::receipt_id.eq(receipt.id))
-            .select(EntityInventory::as_select())
-            .get_results(conn)?;
+        let inventories_query = 
+            inventories::table
+                .inner_join(products::table)
+                .filter(inventories::receipt_id.eq(receipt.id))
+                .select(<(EntityInventory, EntityProduct)>::as_select());
 
-        let mut response_inventories: Vec<ResponseInventory> = Vec::new();
+        let inventories_products = inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
 
-        for inventory in inventories {
-            let product = 
-                products::table
-                    .filter(products::id.eq(inventory.product_id))
-                    .select(EntityProduct::as_select())
-                    .get_result(conn)?;
-
-            let response_inventory = self.convert_to_inventory_response(inventory, product);
-            response_inventories.push(response_inventory)
+        let mut inventories = vec![];
+        for inventory_product in inventories_products {
+            inventories.push(self.convert_to_inventory_response(inventory_product.0, inventory_product.1));
         }
 
-        let receipt_response = self.convert_to_receipt_response(receipt, currency, store, response_inventories);
 
+        let receipt_response = self.convert_to_receipt_response(receipt, currency, store, inventories);
 
         Ok(receipt_response)
     }
