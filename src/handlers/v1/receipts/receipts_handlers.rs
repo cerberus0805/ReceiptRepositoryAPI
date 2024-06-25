@@ -24,7 +24,7 @@ impl ReceiptsHandlers {
         match response_receipt {
             Ok(response) => {
                 let payload = ReponseReceiptPayload {
-                    data: Some(response),
+                    data: Some(vec![response]),
                     error: None
                 };
         
@@ -36,6 +36,27 @@ impl ReceiptsHandlers {
                     error: Some(e.to_string())
                 };
                 (StatusCode::NOT_FOUND, Json(payload))
+            }
+        }
+    }
+
+    pub async fn get_receipts(State(repository): State<DbRepository>) -> impl IntoResponse {
+        let service = ReceiptService::new(repository);
+        let response_receipts = service.get_receipts().await;
+        match  response_receipts {
+            Ok(response) => {
+                let payload = ReponseReceiptPayload {
+                    data: Some(response),
+                    error: None
+                };
+                (StatusCode::OK, Json(payload))
+            },
+            Err(e) => {
+                let payload = ReponseReceiptPayload {
+                    data: None,
+                    error: Some(e.to_string())
+                };
+                (StatusCode::NOT_ACCEPTABLE, Json(payload))
             }
         }
     }

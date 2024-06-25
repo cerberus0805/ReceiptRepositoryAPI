@@ -4,7 +4,7 @@ use bigdecimal::BigDecimal;
 use crate::models::v1::entities::entity_product::EntityProduct;
 use crate::models::v1::entities::entity_receipt::EntityReceipt;
 
-#[derive(Queryable, Selectable, Insertable, AsChangeset, Identifiable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Insertable, AsChangeset, Identifiable, Associations, Debug, PartialEq, Clone)]
 #[diesel(table_name = crate::schema::inventories)]
 #[diesel(belongs_to(EntityProduct, foreign_key = product_id))]
 #[diesel(belongs_to(EntityReceipt, foreign_key = receipt_id))]

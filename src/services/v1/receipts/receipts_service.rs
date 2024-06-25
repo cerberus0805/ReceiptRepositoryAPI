@@ -65,6 +65,55 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
+    pub async fn get_receipts(&self) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
+        let conn = &mut self.repository.pool.get().unwrap();
+        let all_compound_receipts_query = 
+            receipts::table
+                .inner_join(currencies::table)
+                .inner_join(stores::table)
+                .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
+
+        let all_compound_receipts = all_compound_receipts_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+
+        let all_compound_inventories_query =
+            inventories::table
+                .inner_join(products::table)
+                .select(<(EntityInventory, EntityProduct)>::as_select());
+        
+        let all_compound_inventories = all_compound_inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
+
+        Ok(self.convert_to_all_receipt_response(all_compound_receipts, all_compound_inventories))
+    }
+
+    fn convert_to_all_receipt_response(&self, compound_receipts: Vec<(EntityReceipt, EntityCurrency, EntityStore)>, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseReceipt> {
+        let mut receipts = vec![];
+        for receipt_currency_store in compound_receipts {
+            let compound_inventories_of_the_receipt = &compound_inventories.clone()
+                .into_iter()
+                .filter(|inv_compound| inv_compound.0.receipt_id == receipt_currency_store.0.id)
+                .collect::<Vec<(EntityInventory, EntityProduct)>>();
+            receipts.push(
+                self.convert_to_receipt_response(
+                    receipt_currency_store.0, 
+                    receipt_currency_store.1, 
+                    receipt_currency_store.2, 
+                    self.convert_to_all_inventories_response(compound_inventories_of_the_receipt.to_vec())
+                )
+            );
+        }
+
+        receipts
+    }
+
+    fn convert_to_all_inventories_response(&self, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseInventory> {
+        let mut inventories = vec![];
+        for inventory_product in compound_inventories {
+            inventories.push(self.convert_to_inventory_response(inventory_product.0, inventory_product.1));
+        }
+
+        inventories
+    }
+
     fn convert_to_currency_response(&self, currency: EntityCurrency) -> ResponseCurrency {
         ResponseCurrency {
             id: currency.id,
