@@ -18,6 +18,6 @@ pub struct ResponseReceipt {
 
 #[derive(Serialize)]
 pub struct ReponseReceiptPayload {
-    pub data: Option<ResponseReceipt>,
+    pub data: Option<Vec<ResponseReceipt>>,
     pub error: Option<String>
 }
