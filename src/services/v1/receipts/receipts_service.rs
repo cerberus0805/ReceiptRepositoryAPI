@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bigdecimal::ToPrimitive;
 use diesel::{
     ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
@@ -87,17 +89,25 @@ impl ReceiptService {
 
     fn convert_to_all_receipt_response(&self, compound_receipts: Vec<(EntityReceipt, EntityCurrency, EntityStore)>, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseReceipt> {
         let mut receipts = vec![];
+        let mut compound_inventories_hash_map: HashMap<i32, Vec<(EntityInventory, EntityProduct)>> = HashMap::<i32, Vec<(EntityInventory, EntityProduct)>>::new();
+        for tuple in compound_inventories {
+            if compound_inventories_hash_map.contains_key(&tuple.0.receipt_id) {
+                compound_inventories_hash_map.get_mut(&tuple.0.receipt_id).unwrap().push(tuple);
+            }
+            else {
+                compound_inventories_hash_map.insert(tuple.0.receipt_id, vec![tuple]);
+            }
+        }
+        
+
         for receipt_currency_store in compound_receipts {
-            let compound_inventories_of_the_receipt = &compound_inventories.clone()
-                .into_iter()
-                .filter(|inv_compound| inv_compound.0.receipt_id == receipt_currency_store.0.id)
-                .collect::<Vec<(EntityInventory, EntityProduct)>>();
+            let id = &receipt_currency_store.0.id;
             receipts.push(
                 self.convert_to_receipt_response(
-                    receipt_currency_store.0, 
+                    receipt_currency_store.0.clone(), 
                     receipt_currency_store.1, 
                     receipt_currency_store.2, 
-                    self.convert_to_all_inventories_response(compound_inventories_of_the_receipt.to_vec())
+                    self.convert_to_all_inventories_response(compound_inventories_hash_map[id].clone())
                 )
             );
         }

@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use crate::models::v1::entities::entity_currency::EntityCurrency;
 use crate::models::v1::entities::entity_store::EntityStore;
 
-#[derive(Queryable, Selectable, Insertable, AsChangeset, Identifiable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Insertable, AsChangeset, Identifiable, Associations, Debug, PartialEq, Clone)]
 #[diesel(table_name = crate::schema::receipts)]
 #[diesel(belongs_to(EntityCurrency, foreign_key = currency_id))]
 #[diesel(belongs_to(EntityStore, foreign_key = store_id))]
