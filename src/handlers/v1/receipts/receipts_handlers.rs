@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::{
-    models::v1::responses::response_receipt::ReponseReceiptPayload, 
+    models::v1::responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}, 
     repository::DbRepository,
     services::v1::receipts::receipts_service::ReceiptService
 };
@@ -24,7 +24,7 @@ impl ReceiptsHandlers {
         match response_receipt {
             Ok(response) => {
                 let payload = ReponseReceiptPayload {
-                    data: Some(vec![response]),
+                    data: Some(response),
                     error: None
                 };
         
@@ -44,15 +44,15 @@ impl ReceiptsHandlers {
         let service = ReceiptService::new(repository);
         let response_receipts = service.get_receipts().await;
         match  response_receipts {
-            Ok(response) => {
-                let payload = ReponseReceiptPayload {
-                    data: Some(response),
+            Ok(responses) => {
+                let payload = ReponseReceiptsPayload {
+                    data: Some(responses),
                     error: None
                 };
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
-                let payload = ReponseReceiptPayload {
+                let payload = ReponseReceiptsPayload {
                     data: None,
                     error: Some(e.to_string())
                 };
