@@ -2,15 +2,14 @@ use std::collections::HashMap;
 
 use bigdecimal::ToPrimitive;
 use diesel::{
-    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
         entities::{
             entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, 
-        responses::{
+        }, parameters::pagination::{Pagination, MAX_LIMIT}, responses::{
             response_currency::ResponseCurrency, 
             response_inventory::ResponseInventory, 
             response_product::ResponseProduct, 
@@ -67,19 +66,34 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
+    pub async fn get_receipts(&self, pagination: Pagination) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
+
+        let count = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
+        let page_offset = std::cmp::min(count, pagination.offset);
+        let per_page;
+        if page_offset > count {
+            per_page = 0;
+        }
+        else {
+            per_page = std::cmp::min(MAX_LIMIT, pagination.limit);
+        }
+
         let all_compound_receipts_query = 
             receipts::table
                 .inner_join(currencies::table)
                 .inner_join(stores::table)
+                .limit(per_page)
+                .offset(page_offset)
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
         let all_compound_receipts = all_compound_receipts_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+        let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
 
         let all_compound_inventories_query =
             inventories::table
                 .inner_join(products::table)
+                .filter(inventories::columns::receipt_id.eq_any(receipts_ids))
                 .select(<(EntityInventory, EntityProduct)>::as_select());
         
         let all_compound_inventories = all_compound_inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;

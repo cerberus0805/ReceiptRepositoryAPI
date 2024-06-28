@@ -1,7 +1,8 @@
 use axum::{
     extract::{
         Path, 
-        State
+        State,
+        Query
     }, 
     http::StatusCode, 
     response::IntoResponse, Json
@@ -9,6 +10,7 @@ use axum::{
 
 use crate::{
     models::v1::responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}, 
+    models::v1::parameters::pagination::Pagination,
     repository::DbRepository,
     services::v1::receipts::receipts_service::ReceiptService
 };
@@ -40,9 +42,10 @@ impl ReceiptsHandlers {
         }
     }
 
-    pub async fn get_receipts(State(repository): State<DbRepository>) -> impl IntoResponse {
+    pub async fn get_receipts(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
-        let response_receipts = service.get_receipts().await;
+        // let Query(pagination) = pagination.unwrap_or_default();
+        let response_receipts = service.get_receipts(pagination.unwrap_or_default().0).await;
         match  response_receipts {
             Ok(responses) => {
                 let payload = ReponseReceiptsPayload {
