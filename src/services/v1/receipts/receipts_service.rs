@@ -79,7 +79,7 @@ impl ReceiptService {
             per_page = std::cmp::min(MAX_LIMIT, pagination.limit);
         }
 
-        let all_compound_receipts_query = 
+        let all_compound_receipts_in_this_page_query = 
             receipts::table
                 .inner_join(currencies::table)
                 .inner_join(stores::table)
@@ -87,18 +87,18 @@ impl ReceiptService {
                 .offset(page_offset)
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let all_compound_receipts = all_compound_receipts_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
-        let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
+        let all_compound_receipts_in_this_page = all_compound_receipts_in_this_page_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+        let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts_in_this_page).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
 
-        let all_compound_inventories_query =
+        let all_compound_inventories_in_this_page_query =
             inventories::table
                 .inner_join(products::table)
                 .filter(inventories::columns::receipt_id.eq_any(receipts_ids))
                 .select(<(EntityInventory, EntityProduct)>::as_select());
         
-        let all_compound_inventories = all_compound_inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
+        let all_compound_inventories_in_this_page = all_compound_inventories_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
 
-        Ok(self.convert_to_all_receipt_response(all_compound_receipts, all_compound_inventories))
+        Ok(self.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page))
     }
 
     fn convert_to_all_receipt_response(&self, compound_receipts: Vec<(EntityReceipt, EntityCurrency, EntityStore)>, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseReceipt> {
