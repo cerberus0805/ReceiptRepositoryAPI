@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bigdecimal::ToPrimitive;
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
@@ -68,12 +68,10 @@ impl ReceiptService {
 
     pub async fn get_receipts(&self, pagination: Pagination) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
-
-        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
         
         let mut page_offset: i64 = pagination.offset;
         let mut per_page: i64 = pagination.limit;
-        if page_offset < 0 || page_offset > count - 1 {
+        if page_offset < 0 {
             page_offset = DEFAULT_OFFSET;
         }
 
