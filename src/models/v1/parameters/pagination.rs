@@ -6,10 +6,15 @@ pub struct Pagination {
     pub offset: i64
 }
 
+pub const DEFAULT_OFFSET: i64 = 0;
+pub const DEFAULT_LIMIT: i64 = 20;
 pub const MAX_LIMIT: i64 = 100;
 
 impl Default for Pagination {
     fn default() -> Self {
-        Self { limit: 20, offset: 0 }
+        Self { 
+            limit: DEFAULT_LIMIT, 
+            offset: DEFAULT_OFFSET
+        }
     }
 }

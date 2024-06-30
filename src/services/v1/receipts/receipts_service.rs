@@ -9,7 +9,7 @@ use crate::{
     models::v1::{
         entities::{
             entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, parameters::pagination::{Pagination, MAX_LIMIT}, responses::{
+        }, parameters::pagination::{Pagination, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_OFFSET}, responses::{
             response_currency::ResponseCurrency, 
             response_inventory::ResponseInventory, 
             response_product::ResponseProduct, 
@@ -69,14 +69,20 @@ impl ReceiptService {
     pub async fn get_receipts(&self, pagination: Pagination) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
 
-        let count = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
-        let page_offset = std::cmp::min(count, pagination.offset);
-        let per_page;
-        if page_offset > count {
-            per_page = 0;
+        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
+        
+        let mut page_offset: i64 = pagination.offset;
+        let mut per_page: i64 = pagination.limit;
+        if page_offset < 0 || page_offset > count - 1 {
+            page_offset = DEFAULT_OFFSET;
         }
-        else {
-            per_page = std::cmp::min(MAX_LIMIT, pagination.limit);
+
+        if per_page < 1 {
+            per_page = DEFAULT_LIMIT;
+        }
+
+        if per_page > MAX_LIMIT {
+            per_page = MAX_LIMIT;
         }
 
         let all_compound_receipts_in_this_page_query = 
