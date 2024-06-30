@@ -25,5 +25,6 @@ pub struct ReponseReceiptPayload {
 #[derive(Serialize)]
 pub struct ReponseReceiptsPayload {
     pub data: Option<Vec<ResponseReceipt>>,
+    pub total: Option<i64>,
     pub error: Option<String>
 }

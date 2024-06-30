@@ -44,11 +44,12 @@ impl ReceiptsHandlers {
 
     pub async fn get_receipts(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
-        let response_receipts = service.get_receipts(pagination.unwrap_or_default().0).await;
-        match response_receipts {
+        let receipt_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
+        match receipt_collection {
             Ok(responses) => {
                 let payload = ReponseReceiptsPayload {
-                    data: Some(responses),
+                    data: Some(responses.partial_collection),
+                    total: Some(responses.total_count),
                     error: None
                 };
                 (StatusCode::OK, Json(payload))
@@ -56,6 +57,7 @@ impl ReceiptsHandlers {
             Err(e) => {
                 let payload = ReponseReceiptsPayload {
                     data: None,
+                    total: None,
                     error: Some(e.to_string())
                 };
                 (StatusCode::NOT_ACCEPTABLE, Json(payload))

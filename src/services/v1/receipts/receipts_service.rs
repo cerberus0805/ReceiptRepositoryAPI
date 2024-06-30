@@ -2,20 +2,23 @@ use std::collections::HashMap;
 
 use bigdecimal::ToPrimitive;
 use diesel::{
-    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
         entities::{
             entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, parameters::pagination::{Pagination, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_OFFSET}, responses::{
+        }, 
+        parameters::pagination::{Pagination, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_OFFSET}, 
+        responses::{
             response_currency::ResponseCurrency, 
             response_inventory::ResponseInventory, 
             response_product::ResponseProduct, 
             response_receipt::ResponseReceipt, 
             response_store::ResponseStore
-        }
+        },
+        collections::service_collection::ServiceCollection
     }, 
     repository::DbRepository, 
     schema::{
@@ -66,8 +69,10 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
+    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
+
+        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
         
         let mut page_offset: i64 = pagination.offset;
         let mut per_page: i64 = pagination.limit;
@@ -102,7 +107,10 @@ impl ReceiptService {
         
         let all_compound_inventories_in_this_page = all_compound_inventories_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
 
-        Ok(self.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page))
+        Ok(ServiceCollection {
+            partial_collection: self.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page),
+            total_count: count
+        })
     }
 
     fn convert_to_all_receipt_response(&self, compound_receipts: Vec<(EntityReceipt, EntityCurrency, EntityStore)>, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseReceipt> {
