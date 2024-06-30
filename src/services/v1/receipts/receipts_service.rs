@@ -9,13 +9,16 @@ use crate::{
     models::v1::{
         entities::{
             entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, parameters::pagination::{Pagination, MAX_LIMIT}, responses::{
+        }, 
+        parameters::pagination::{Pagination, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_OFFSET}, 
+        responses::{
             response_currency::ResponseCurrency, 
             response_inventory::ResponseInventory, 
             response_product::ResponseProduct, 
             response_receipt::ResponseReceipt, 
             response_store::ResponseStore
-        }
+        },
+        collections::service_collection::ServiceCollection
     }, 
     repository::DbRepository, 
     schema::{
@@ -66,20 +69,26 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<Vec<ResponseReceipt>, diesel::result::Error> {
+    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, diesel::result::Error> {
         let conn = &mut self.repository.pool.get().unwrap();
 
-        let count = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
-        let page_offset = std::cmp::min(count, pagination.offset);
-        let per_page;
-        if page_offset > count {
-            per_page = 0;
-        }
-        else {
-            per_page = std::cmp::min(MAX_LIMIT, pagination.limit);
+        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
+        
+        let mut page_offset: i64 = pagination.offset;
+        let mut per_page: i64 = pagination.limit;
+        if page_offset < 0 {
+            page_offset = DEFAULT_OFFSET;
         }
 
-        let all_compound_receipts_query = 
+        if per_page < 1 {
+            per_page = DEFAULT_LIMIT;
+        }
+
+        if per_page > MAX_LIMIT {
+            per_page = MAX_LIMIT;
+        }
+
+        let all_compound_receipts_in_this_page_query = 
             receipts::table
                 .inner_join(currencies::table)
                 .inner_join(stores::table)
@@ -87,18 +96,21 @@ impl ReceiptService {
                 .offset(page_offset)
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let all_compound_receipts = all_compound_receipts_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
-        let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
+        let all_compound_receipts_in_this_page = all_compound_receipts_in_this_page_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+        let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts_in_this_page).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
 
-        let all_compound_inventories_query =
+        let all_compound_inventories_in_this_page_query =
             inventories::table
                 .inner_join(products::table)
                 .filter(inventories::columns::receipt_id.eq_any(receipts_ids))
                 .select(<(EntityInventory, EntityProduct)>::as_select());
         
-        let all_compound_inventories = all_compound_inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
+        let all_compound_inventories_in_this_page = all_compound_inventories_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
 
-        Ok(self.convert_to_all_receipt_response(all_compound_receipts, all_compound_inventories))
+        Ok(ServiceCollection {
+            partial_collection: self.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page),
+            total_count: count
+        })
     }
 
     fn convert_to_all_receipt_response(&self, compound_receipts: Vec<(EntityReceipt, EntityCurrency, EntityStore)>, compound_inventories: Vec<(EntityInventory, EntityProduct)>) -> Vec<ResponseReceipt> {
