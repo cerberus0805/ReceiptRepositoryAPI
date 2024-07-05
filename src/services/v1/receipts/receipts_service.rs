@@ -39,7 +39,7 @@ impl ReceiptService {
     }
 
     pub async fn get_receipt(&self, id: i32) -> Result<ResponseReceipt, diesel::result::Error> {
-        let conn = &mut self.repository.pool.get().unwrap();
+        let conn = &mut self.repository.pool.get().expect("Database connection is fine.");
 
         let receipt_query = 
             receipts::table
@@ -69,10 +69,10 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, diesel::result::Error> {
-        let conn = &mut self.repository.pool.get().unwrap();
+    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, anyhow::Error> {
+        let conn = &mut self.repository.pool.get()?;
 
-        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).unwrap();
+        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn)?;
         
         let mut page_offset: i64 = pagination.offset;
         let mut per_page: i64 = pagination.limit;

@@ -9,8 +9,7 @@ use axum::{
 };
 
 use crate::{
-    models::v1::responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}, 
-    models::v1::parameters::pagination::Pagination,
+    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, 
     repository::DbRepository,
     services::v1::receipts::receipts_service::ReceiptService
 };
@@ -33,9 +32,14 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                let api_error = match e {
+                    diesel::result::Error::NotFound => ApiError::NoRecord(e.to_string()),
+                    _ => ApiError::Generic
+                };
+
                 let payload = ReponseReceiptPayload {
                     data: None,
-                    error: Some(e.to_string())
+                    error: Some(api_error)
                 };
                 (StatusCode::NOT_FOUND, Json(payload))
             }
@@ -55,10 +59,12 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                println!("{:#?}", e);
+                let api_error = ApiError::Generic;
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
-                    error: Some(e.to_string())
+                    error: Some(api_error)
                 };
                 (StatusCode::NOT_ACCEPTABLE, Json(payload))
             }
