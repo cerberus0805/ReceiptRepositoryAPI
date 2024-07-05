@@ -2,47 +2,50 @@ use axum::{
     extract::{
         Path, 
         State,
-        Query
+        Query,
+        rejection::PathRejection
     }, 
     http::StatusCode, 
     response::IntoResponse, Json
 };
 
 use crate::{
-    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, 
-    repository::DbRepository,
-    services::v1::receipts::receipts_service::ReceiptService
+    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, repository::DbRepository, services::v1::receipts::receipts_service::ReceiptService
 };
 
 pub struct ReceiptsHandlers {
 }
 
 impl ReceiptsHandlers {
-    pub async fn get_receipt(State(repository): State<DbRepository>, Path(id): Path<u32>) -> impl IntoResponse {
+    pub async fn get_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
-
-        let response_receipt = service.get_receipt(id as i32).await;
-        match response_receipt {
-            Ok(response) => {
-                let payload = ReponseReceiptPayload {
-                    data: Some(response),
-                    error: None
-                };
-        
-                (StatusCode::OK, Json(payload))
-            },
-            Err(e) => {
-                let api_error = match e {
-                    diesel::result::Error::NotFound => ApiError::NoRecord(e.to_string()),
-                    _ => ApiError::Generic
-                };
-
-                let payload = ReponseReceiptPayload {
-                    data: None,
-                    error: Some(api_error)
-                };
-                (StatusCode::NOT_FOUND, Json(payload))
+        let r_path_id = id.or_else(|_e| Err(ApiError::InvalidParameter));
+        if let Ok(r_id) = r_path_id {
+            let response_receipt = service.get_receipt(r_id.0 as i32).await;
+            match response_receipt {
+                Ok(response) => {
+                    let payload = ReponseReceiptPayload {
+                        data: Some(response),
+                        error: None
+                    };
+            
+                    (StatusCode::OK, Json(payload))
+                },
+                Err(e) => {
+                    let payload = ReponseReceiptPayload {
+                        data: None,
+                        error: Some(e)
+                    };
+                    (StatusCode::NOT_FOUND, Json(payload))
+                }
             }
+        }
+        else {
+            let payload = ReponseReceiptPayload {
+                data: None,
+                error: Some(ApiError::InvalidParameter)
+            };
+            (StatusCode::BAD_REQUEST, Json(payload))
         }
     }
 
@@ -59,12 +62,10 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
-                println!("{:#?}", e);
-                let api_error = ApiError::Generic;
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
-                    error: Some(api_error)
+                    error: Some(e)
                 };
                 (StatusCode::NOT_ACCEPTABLE, Json(payload))
             }

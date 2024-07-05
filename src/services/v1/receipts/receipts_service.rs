@@ -7,18 +7,15 @@ use diesel::{
 
 use crate::{
     models::v1::{
-        entities::{
+        collections::service_collection::ServiceCollection, entities::{
             entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, 
-        parameters::pagination::{Pagination, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_OFFSET}, 
-        responses::{
+        }, errors::api_error::ApiError, parameters::pagination::{Pagination, DEFAULT_LIMIT, DEFAULT_OFFSET, MAX_LIMIT}, responses::{
             response_currency::ResponseCurrency, 
             response_inventory::ResponseInventory, 
             response_product::ResponseProduct, 
             response_receipt::ResponseReceipt, 
             response_store::ResponseStore
-        },
-        collections::service_collection::ServiceCollection
+        }
     }, 
     repository::DbRepository, 
     schema::{
@@ -38,8 +35,8 @@ impl ReceiptService {
         }
     }
 
-    pub async fn get_receipt(&self, id: i32) -> Result<ResponseReceipt, diesel::result::Error> {
-        let conn = &mut self.repository.pool.get().expect("Database connection is fine.");
+    pub async fn get_receipt(&self, id: i32) -> Result<ResponseReceipt, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|_e| Err(ApiError::DatabaseConnectionBroken))?;
 
         let receipt_query = 
             receipts::table
@@ -48,7 +45,7 @@ impl ReceiptService {
                 .filter(receipts::id.eq(id))
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
 
         let inventories_query = 
             inventories::table
@@ -56,7 +53,7 @@ impl ReceiptService {
                 .filter(inventories::receipt_id.eq(receipt.id))
                 .select(<(EntityInventory, EntityProduct)>::as_select());
 
-        let inventories_products = inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
+        let inventories_products = inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
 
         let mut inventories = vec![];
         for inventory_product in inventories_products {
@@ -69,10 +66,10 @@ impl ReceiptService {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, anyhow::Error> {
-        let conn = &mut self.repository.pool.get()?;
+    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|_e| Err(ApiError::DatabaseConnectionBroken))?;
 
-        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn)?;
+        let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
         
         let mut page_offset: i64 = pagination.offset;
         let mut per_page: i64 = pagination.limit;
@@ -96,7 +93,7 @@ impl ReceiptService {
                 .offset(page_offset)
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let all_compound_receipts_in_this_page = all_compound_receipts_in_this_page_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn)?;
+        let all_compound_receipts_in_this_page = all_compound_receipts_in_this_page_query.get_results::<(EntityReceipt, EntityCurrency, EntityStore)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
         let receipts_ids = AsRef::<Vec<(EntityReceipt, EntityCurrency, EntityStore)>>::as_ref(&all_compound_receipts_in_this_page).into_iter().map(|x| x.0.id as i32).collect::<Vec<i32>>();
 
         let all_compound_inventories_in_this_page_query =
@@ -105,7 +102,7 @@ impl ReceiptService {
                 .filter(inventories::columns::receipt_id.eq_any(receipts_ids))
                 .select(<(EntityInventory, EntityProduct)>::as_select());
         
-        let all_compound_inventories_in_this_page = all_compound_inventories_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn)?;
+        let all_compound_inventories_in_this_page = all_compound_inventories_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
 
         Ok(ServiceCollection {
             partial_collection: self.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page),

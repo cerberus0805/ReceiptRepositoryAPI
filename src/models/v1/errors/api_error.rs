@@ -5,8 +5,10 @@ use serde::Serialize;
 pub enum ApiError {
     #[error("Generic error")]
     Generic,
+    #[error("Invalid parameter")]
+    InvalidParameter,
     #[error("Record not found")]
-    NoRecord(String),
+    NoRecord,
     #[error("Database disconnect")]
     DatabaseConnectionBroken
 }
