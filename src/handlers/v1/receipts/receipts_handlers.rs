@@ -19,8 +19,7 @@ pub struct ReceiptsHandlers {
 impl ReceiptsHandlers {
     pub async fn get_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
-        let r_path_id = id.or_else(|_e| Err(ApiError::InvalidParameter));
-        if let Ok(r_id) = r_path_id {
+        if let Ok(r_id) = id {
             let response_receipt = service.get_receipt(r_id.0 as i32).await;
             match response_receipt {
                 Ok(response) => {
