@@ -1,4 +1,6 @@
 use chrono::NaiveDateTime;
+use crate::models::v1::errors::api_error::ApiError;
+
 use super::{
     response_currency::ResponseCurrency, 
     response_inventory::ResponseInventory, 
@@ -19,12 +21,12 @@ pub struct ResponseReceipt {
 #[derive(Serialize)]
 pub struct ReponseReceiptPayload {
     pub data: Option<ResponseReceipt>,
-    pub error: Option<String>
+    pub error: Option<ApiError>
 }
 
 #[derive(Serialize)]
 pub struct ReponseReceiptsPayload {
     pub data: Option<Vec<ResponseReceipt>>,
     pub total: Option<i64>,
-    pub error: Option<String>
+    pub error: Option<ApiError>
 }

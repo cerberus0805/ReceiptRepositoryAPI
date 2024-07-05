@@ -2,43 +2,49 @@ use axum::{
     extract::{
         Path, 
         State,
-        Query
+        Query,
+        rejection::PathRejection
     }, 
     http::StatusCode, 
     response::IntoResponse, Json
 };
 
 use crate::{
-    models::v1::responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}, 
-    models::v1::parameters::pagination::Pagination,
-    repository::DbRepository,
-    services::v1::receipts::receipts_service::ReceiptService
+    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, repository::DbRepository, services::v1::receipts::receipts_service::ReceiptService
 };
 
 pub struct ReceiptsHandlers {
 }
 
 impl ReceiptsHandlers {
-    pub async fn get_receipt(State(repository): State<DbRepository>, Path(id): Path<u32>) -> impl IntoResponse {
+    pub async fn get_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
-
-        let response_receipt = service.get_receipt(id as i32).await;
-        match response_receipt {
-            Ok(response) => {
-                let payload = ReponseReceiptPayload {
-                    data: Some(response),
-                    error: None
-                };
-        
-                (StatusCode::OK, Json(payload))
-            },
-            Err(e) => {
-                let payload = ReponseReceiptPayload {
-                    data: None,
-                    error: Some(e.to_string())
-                };
-                (StatusCode::NOT_FOUND, Json(payload))
+        if let Ok(r_id) = id {
+            let response_receipt = service.get_receipt(r_id.0 as i32).await;
+            match response_receipt {
+                Ok(response) => {
+                    let payload = ReponseReceiptPayload {
+                        data: Some(response),
+                        error: None
+                    };
+            
+                    (StatusCode::OK, Json(payload))
+                },
+                Err(e) => {
+                    let payload = ReponseReceiptPayload {
+                        data: None,
+                        error: Some(e)
+                    };
+                    (StatusCode::NOT_FOUND, Json(payload))
+                }
             }
+        }
+        else {
+            let payload = ReponseReceiptPayload {
+                data: None,
+                error: Some(ApiError::InvalidParameter)
+            };
+            (StatusCode::BAD_REQUEST, Json(payload))
         }
     }
 
@@ -58,7 +64,7 @@ impl ReceiptsHandlers {
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
-                    error: Some(e.to_string())
+                    error: Some(e)
                 };
                 (StatusCode::NOT_ACCEPTABLE, Json(payload))
             }
