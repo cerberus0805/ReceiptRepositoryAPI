@@ -31,13 +31,7 @@ impl ReceiptsHandlers {
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
-                    let http_return_code;
-                    if e == ApiError::NoRecord {
-                        http_return_code = StatusCode::NOT_FOUND 
-                    }
-                    else {
-                        http_return_code = StatusCode::NOT_ACCEPTABLE
-                    }
+                    let http_return_code = Self::get_http_status_from_service_api_error(&e);
 
                     let payload = ReponseReceiptPayload {
                         data: None,
@@ -69,13 +63,7 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
-                let http_return_code;
-                if e == ApiError::NoRecord {
-                    http_return_code = StatusCode::NOT_FOUND 
-                }
-                else {
-                    http_return_code = StatusCode::NOT_ACCEPTABLE
-                }
+                let http_return_code = Self::get_http_status_from_service_api_error(&e);
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
@@ -84,5 +72,17 @@ impl ReceiptsHandlers {
                 (http_return_code, Json(payload))
             }
         }
+    }
+
+    fn get_http_status_from_service_api_error(error: &ApiError) -> StatusCode {
+        let http_return_code;
+        if error == &ApiError::NoRecord {
+            http_return_code = StatusCode::NOT_FOUND 
+        }
+        else {
+            http_return_code = StatusCode::NOT_ACCEPTABLE
+        }
+
+        http_return_code
     }
 }
