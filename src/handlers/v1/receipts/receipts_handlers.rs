@@ -31,11 +31,19 @@ impl ReceiptsHandlers {
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
+                    let http_return_code;
+                    if e == ApiError::NoRecord {
+                        http_return_code = StatusCode::NOT_FOUND 
+                    }
+                    else {
+                        http_return_code = StatusCode::NOT_ACCEPTABLE
+                    }
+
                     let payload = ReponseReceiptPayload {
                         data: None,
                         error: Some(e)
                     };
-                    (StatusCode::NOT_FOUND, Json(payload))
+                    (http_return_code, Json(payload))
                 }
             }
         }
@@ -61,12 +69,19 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                let http_return_code;
+                if e == ApiError::NoRecord {
+                    http_return_code = StatusCode::NOT_FOUND 
+                }
+                else {
+                    http_return_code = StatusCode::NOT_ACCEPTABLE
+                }
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
                     error: Some(e)
                 };
-                (StatusCode::NOT_ACCEPTABLE, Json(payload))
+                (http_return_code, Json(payload))
             }
         }
     }

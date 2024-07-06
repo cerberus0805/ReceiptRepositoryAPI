@@ -1,7 +1,7 @@
 use thiserror::Error;
 use serde::Serialize;
 
-#[derive(Debug, Error, Serialize)]
+#[derive(Debug, Error, PartialEq, Serialize)]
 pub enum ApiError {
     #[error("Generic error")]
     Generic,
