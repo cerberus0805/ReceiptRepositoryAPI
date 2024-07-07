@@ -15,6 +15,7 @@ impl Application {
     }
 
     pub async fn run(self) {
+        tracing::info!("app start");
         axum::serve(self.app_listener.listener, self.app_router.router).await.unwrap();
     }
 }

@@ -7,9 +7,10 @@ pub struct AppListener {
 
 impl AppListener {
     pub async fn new(address: String) -> Result<Self, Error> {
-        let listener = tokio::net::TcpListener::bind(address).await;
+        let listener = tokio::net::TcpListener::bind(&address).await;
         match listener {
             Ok(listener) => {
+                tracing::info!("listening on {}", &address);
                 Ok(Self {
                     listener
                 })
