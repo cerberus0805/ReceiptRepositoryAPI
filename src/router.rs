@@ -33,29 +33,40 @@ impl AppRouter {
                             "http_request", 
                             method = ?request.method(), 
                             matched_path,
-                            uri = ?request.uri(),
+                            uri = %request.uri(),
+                            latency_on_response = tracing::field::Empty,
+                            latency_on_body_chunk = tracing::field::Empty,
+                            stream_duration_on_eos = tracing::field::Empty,
+                            latency_on_failure = tracing::field::Empty,
                         )
                     })
                     .on_request(|_request: &Request<_>, _span: &Span| {
                         tracing::info!("on_request");
                     })
-                    .on_response(|response: &Response, latency: Duration, _span: &Span| {
-                        tracing::info!("on_response - latency: {:#?}, status: {}", latency, response.status());
+                    .on_response(|response: &Response, latency: Duration, span: &Span| {
+                        let latency_str = format!("{:?}", latency);
+                        span.record("latency_on_response", &latency_str);
+                        tracing::info!("on_response status: {}", response.status());
                     })
-                    .on_body_chunk(|_chunk: &Bytes, latency: Duration, _span: &Span| {
-                        tracing::debug!("on_body_chunk - latency: {:#?}", latency);
+                    .on_body_chunk(|chunk: &Bytes, latency: Duration, span: &Span| {
+                        let latency_str = format!("{:?}", latency);
+                        span.record("latency_on_body_chunk", &latency_str);
+                        tracing::debug!("on_body_chunk, {} bytes sent", chunk.len());
                     })
                     .on_eos(
-                        |_trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
-                            tracing::info!("on_eos - stream_duration: {:#?}", stream_duration);
+                        |_trailers: Option<&HeaderMap>, stream_duration: Duration, span: &Span| {
+                            let stream_duration_str = format!("{:?}", stream_duration);
+                            span.record("stream_duration_on_eos", &stream_duration_str);
+                            tracing::info!("on_eos - stream_duration");
                         },
                     )
                     .on_failure(
-                        |_error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
-                            tracing::error!("on_failure - latency: {:#?}", latency);
+                        |_error: ServerErrorsFailureClass, latency: Duration, span: &Span| {
+                            let latency_str = format!("{:?}", latency);
+                            span.record("latency_on_failure", &latency_str);
+                            tracing::error!("on_failure");
                         },
                     ),
-
             );
         Self {
             router
