@@ -34,6 +34,7 @@ impl AppRouter {
                             method = ?request.method(), 
                             matched_path,
                             uri = %request.uri(),
+                            status = tracing::field::Empty,
                             latency_on_response = tracing::field::Empty,
                             latency_on_body_chunk = tracing::field::Empty,
                             stream_duration_on_eos = tracing::field::Empty,
@@ -44,9 +45,11 @@ impl AppRouter {
                         tracing::info!("on_request");
                     })
                     .on_response(|response: &Response, latency: Duration, span: &Span| {
+                        let status_str = format!("{}", response.status());
                         let latency_str = format!("{:?}", latency);
+                        span.record("status", status_str);
                         span.record("latency_on_response", &latency_str);
-                        tracing::info!("on_response status: {}", response.status());
+                        tracing::info!("on_response");
                     })
                     .on_body_chunk(|chunk: &Bytes, latency: Duration, span: &Span| {
                         let latency_str = format!("{:?}", latency);
