@@ -36,7 +36,11 @@ impl ReceiptService {
     }
 
     pub async fn get_receipt(&self, id: i32) -> Result<ResponseReceipt, ApiError> {
-        let conn = &mut self.repository.pool.get().or_else(|_e| Err(ApiError::DatabaseConnectionBroken))?;
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            })?;
 
         let receipt_query = 
             receipts::table
@@ -45,7 +49,11 @@ impl ReceiptService {
                 .filter(receipts::id.eq(id))
                 .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
 
-        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn).or_else(
+            |e| {
+                tracing::warn!("try to get a non existed receipt ({}): {}", id, e);
+                Err(ApiError::NoRecord)
+            })?;
 
         let inventories_query = 
             inventories::table
@@ -67,21 +75,28 @@ impl ReceiptService {
     }
 
     pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, ApiError> {
-        let conn = &mut self.repository.pool.get().or_else(|_e| Err(ApiError::DatabaseConnectionBroken))?;
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            })?;
 
         let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
         
         let mut page_offset: i64 = pagination.offset;
         let mut per_page: i64 = pagination.limit;
         if page_offset < 0 {
+            tracing::debug!("fallback to default offset for negative offset");
             page_offset = DEFAULT_OFFSET;
         }
 
         if per_page < 1 {
+            tracing::debug!("fallback to default limit for negative or zeor offset");
             per_page = DEFAULT_LIMIT;
         }
 
         if per_page > MAX_LIMIT {
+            tracing::debug!("fallback to max limit due to max limit exceeds");
             per_page = MAX_LIMIT;
         }
 
