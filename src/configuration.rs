@@ -1,4 +1,5 @@
 use std::env;
+use dotenvy::dotenv;
 
 pub struct AppConfig {
     host: String,
@@ -8,6 +9,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn new() -> Self {
+        dotenv().ok();
         let host = env::var("BIND_ADDR").expect("BIND_ADDR is not exised in environment variable").to_string();
         let port: u16 = env::var("BIND_PORT").expect("BIND_ADDR is not exised in environment variable").to_string().parse().expect("Convert env port to u16 failed");
         let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not exised in environment variable").to_string();
@@ -24,6 +26,11 @@ impl AppConfig {
 
     pub fn get_db_url(&self) -> String {
         self.db_url.to_string()
+    }
+
+    pub fn get_log_filter(&self) -> String {
+        let log_filter = env::var("RUST_LOG").unwrap_or_else(|_| "receipt_repository_api=debug,tower_http=debug,axum::rejection=trace".to_string());
+        log_filter
     }
 
     pub fn log_to_file(&self) -> bool {
