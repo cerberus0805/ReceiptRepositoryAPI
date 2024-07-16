@@ -10,7 +10,7 @@ use axum::{
 };
 
 use crate::{
-    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, repository::DbRepository, services::v1::receipts::receipts_service::ReceiptService
+    models::v1::{errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::{ReponseReceiptPayload, ReponseReceiptsPayload}}, repository::DbRepository, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, receipts::receipts_service::ReceiptService}
 };
 
 pub struct ReceiptsHandlers {
@@ -19,6 +19,7 @@ pub struct ReceiptsHandlers {
 impl ReceiptsHandlers {
     pub async fn get_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
+        let api_error_converter_service = ApiErrorConventerService::new();
         if let Ok(r_id) = id {
             let response_receipt = service.get_receipt(r_id.0 as i32).await;
             match response_receipt {
@@ -31,7 +32,7 @@ impl ReceiptsHandlers {
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
-                    let http_return_code = Self::get_http_status_from_api_error(&e);
+                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
 
                     let payload = ReponseReceiptPayload {
                         data: None,
@@ -52,6 +53,7 @@ impl ReceiptsHandlers {
 
     pub async fn get_receipts(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ReceiptService::new(repository);
+        let api_error_converter_service = ApiErrorConventerService::new();
         let receipt_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
         match receipt_collection {
             Ok(responses) => {
@@ -63,7 +65,7 @@ impl ReceiptsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
-                let http_return_code = Self::get_http_status_from_api_error(&e);
+                let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
                 let payload = ReponseReceiptsPayload {
                     data: None,
                     total: None,
@@ -71,15 +73,6 @@ impl ReceiptsHandlers {
                 };
                 (http_return_code, Json(payload))
             }
-        }
-    }
-
-    fn get_http_status_from_api_error(error: &ApiError) -> StatusCode {
-        match error {
-            &ApiError::DatabaseConnectionBroken => StatusCode::INTERNAL_SERVER_ERROR,
-            &ApiError::NoRecord => StatusCode::NOT_FOUND,
-            &ApiError::InvalidParameter => StatusCode::BAD_REQUEST,
-            &ApiError::Generic => StatusCode::NOT_ACCEPTABLE
         }
     }
 }
