@@ -7,7 +7,7 @@ use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{info_span, Span};
 
 use crate::{
-    handlers::v1::receipts::receipts_handlers::ReceiptsHandlers, 
+    handlers::v1::{receipts::receipts_handlers::ReceiptsHandlers, stores::stores_handlers::StoresHandlers}, 
     repository::DbRepository
 };
 
@@ -20,6 +20,8 @@ impl AppRouter {
         let router = Router::new()
             .route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt))
             .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
+            .route("/api/v1/stores/:id", get(StoresHandlers::get_store))
+            .route("/api/v1/stores", get(StoresHandlers::get_stores))
             .with_state(repository)
             .layer(
                 TraceLayer::new_for_http()
