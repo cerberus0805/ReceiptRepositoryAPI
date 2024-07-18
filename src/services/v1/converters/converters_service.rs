@@ -49,8 +49,13 @@ impl ConverterService {
     }
 
     pub fn convert_to_all_stores_response(&self, entity_stores: Vec<EntityStore>) ->  Vec<ResponseStore> {
-        let stores = entity_stores.into_iter().map(|es| self.convert_to_store_response(es)).collect();
+        let stores: Vec<ResponseStore> = entity_stores.into_iter().map(|es| self.convert_to_store_response(es)).collect();
         stores
+    }
+
+    pub fn convert_to_all_currencies_response(&self, entity_currencies: Vec<EntityCurrency>) ->  Vec<ResponseCurrency> {
+        let currencies: Vec<ResponseCurrency> = entity_currencies.into_iter().map(|ec| self.convert_to_currency_response(ec)).collect();
+        currencies
     }
 
     pub fn convert_to_currency_response(&self, currency: EntityCurrency) -> ResponseCurrency {
