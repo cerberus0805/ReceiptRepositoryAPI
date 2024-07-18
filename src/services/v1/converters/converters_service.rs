@@ -58,6 +58,11 @@ impl ConverterService {
         currencies
     }
 
+    pub fn convert_to_all_products_response(&self, entity_products: Vec<EntityProduct>) ->  Vec<ResponseProduct> {
+        let products: Vec<ResponseProduct> = entity_products.into_iter().map(|ep| self.convert_to_product_response(ep)).collect();
+        products
+    }
+
     pub fn convert_to_currency_response(&self, currency: EntityCurrency) -> ResponseCurrency {
         ResponseCurrency {
             id: currency.id,
