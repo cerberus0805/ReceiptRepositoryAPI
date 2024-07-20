@@ -4,3 +4,4 @@ pub mod converters;
 pub mod fallbacks;
 pub mod currencies;
 pub mod products;
+pub mod inventories;
