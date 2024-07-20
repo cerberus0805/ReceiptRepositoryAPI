@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bigdecimal::ToPrimitive;
 
-use crate::models::v1::{entities::{entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore}, responses::{response_currency::ResponseCurrency, response_inventory::ResponseInventory, response_product::ResponseProduct, response_receipt::ResponseReceipt, response_store::ResponseStore}};
+use crate::models::v1::{entities::{entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore}, responses::{response_currency::ResponseCurrency, response_inventory::{ResponseCustomizedInventory, ResponseInventory}, response_product::ResponseProduct, response_receipt::ResponseReceipt, response_store::ResponseStore}};
 
 pub struct ConverterService {
 }
@@ -112,5 +112,43 @@ impl ConverterService {
         };
 
         response_receipt
+    }
+
+    pub fn convert_to_customized_inventory_response(&self, inventory: EntityInventory, product: EntityProduct, receipt: EntityReceipt, store: EntityStore, currency: EntityCurrency) -> ResponseCustomizedInventory {
+        let customized_inventory = ResponseCustomizedInventory {
+            id: inventory.id,
+            product: self.convert_to_product_response(product),
+            price: inventory.price.to_f64().unwrap(),
+            receipt_id: receipt.id,
+            taxed: receipt.is_inventory_taxed,
+            transaction_date: receipt.transaction_date,
+            store_id: store.id,
+            store_name: store.name,
+            store_alias: store.alias,
+            currency: self.convert_to_currency_response(currency)
+        };
+
+        customized_inventory
+    }
+
+    pub fn convert_to_customized_inventories_response(&self, compound_inventories: Vec<(EntityInventory, EntityProduct)>, compound_receipts: Vec<(EntityReceipt, EntityStore, EntityCurrency)>) -> Vec<ResponseCustomizedInventory> {
+        let receipt_tuple_hash_map = compound_receipts.into_iter().map(|t| (t.0.id, t)).collect::<HashMap<i32, (EntityReceipt, EntityStore, EntityCurrency)>>();
+        let customized_inventories = compound_inventories.into_iter().map(|t| {
+            let compound_receipt = receipt_tuple_hash_map.get(&t.0.receipt_id).unwrap();
+            ResponseCustomizedInventory {
+                id: t.0.id,
+                product: self.convert_to_product_response(t.1),
+                price: t.0.price.to_f64().unwrap(),
+                receipt_id: t.0.receipt_id,
+                taxed: compound_receipt.0.is_inventory_taxed,
+                transaction_date: compound_receipt.0.transaction_date,
+                store_id: compound_receipt.0.id,
+                store_name: compound_receipt.1.name.clone(),
+                store_alias: compound_receipt.1.alias.clone(),
+                currency: self.convert_to_currency_response(compound_receipt.2.clone())
+            }
+        }).collect();
+
+        customized_inventories
     }
 }

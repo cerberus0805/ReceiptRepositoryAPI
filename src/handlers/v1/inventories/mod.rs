@@ -1,1 +1,2 @@
 pub mod inventories_handlers;
+pub mod customized_inventories_handlers;

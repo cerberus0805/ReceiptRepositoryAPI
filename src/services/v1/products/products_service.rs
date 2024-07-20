@@ -35,7 +35,7 @@ impl ProductService {
             .select(<EntityProduct>::as_select());
 
         let product = product_query.get_result::<EntityProduct>(conn).or_else(|e| {
-            tracing::warn!("try to get a non existed store ({}): {}", id, e);
+            tracing::warn!("try to get a non existed product ({}): {}", id, e);
             Err(ApiError::NoRecord)
         })?;
 

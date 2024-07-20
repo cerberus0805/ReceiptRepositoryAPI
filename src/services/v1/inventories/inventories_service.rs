@@ -31,7 +31,7 @@ impl InventroyService {
 
         let (inventory, product) = inventory_query.get_result::<(EntityInventory, EntityProduct)>(conn).or_else(
             |e| {
-                tracing::warn!("try to get a non existed receipt ({}): {}", id, e);
+                tracing::warn!("try to get a non existed inventory ({}): {}", id, e);
                 Err(ApiError::NoRecord)
             })?;
 
