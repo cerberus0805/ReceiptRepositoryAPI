@@ -28,7 +28,7 @@ impl CurrencyService {
             .select(<EntityCurrency>::as_select());
 
         let currency = currency_query.get_result::<EntityCurrency>(conn).or_else(|e| {
-            tracing::warn!("try to get a non existed store ({}): {}", id, e);
+            tracing::warn!("try to get a non existed currency ({}): {}", id, e);
             Err(ApiError::NoRecord)
         })?;
 

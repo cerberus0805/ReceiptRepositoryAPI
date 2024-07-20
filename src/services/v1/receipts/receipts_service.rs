@@ -45,7 +45,8 @@ impl ReceiptService {
             |e| {
                 tracing::warn!("try to get a non existed receipt ({}): {}", id, e);
                 Err(ApiError::NoRecord)
-            })?;
+            }
+        )?;
 
         let inventories_query = 
             inventories::table
@@ -73,7 +74,8 @@ impl ReceiptService {
             |e| {
                 tracing::error!("database connection broken: {}", e);
                 Err(ApiError::DatabaseConnectionBroken)
-            })?;
+            }
+        )?;
 
         let count: i64 = receipts::table.select(count(receipts::columns::id)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
         
