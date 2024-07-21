@@ -9,8 +9,8 @@ impl CurrenciesHandlers {
     pub async fn get_currency(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = CurrencyService::new(repository);
         let api_error_converter_service = ApiErrorConventerService::new();
-        if let Ok(s_id) = id {
-            let response_currency = service.get_currency(s_id.0 as i32).await;
+        if let Ok(c_id) = id {
+            let response_currency = service.get_currency(c_id.0 as i32).await;
             match response_currency {
                 Ok(response) => {
                     let payload = ResponseCurrencyPayload {
