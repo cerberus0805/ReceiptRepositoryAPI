@@ -160,4 +160,47 @@ impl CustomizedInventroyService {
             total_count: count
         })
     }
+
+    pub async fn get_customized_inventories_by_receipt_id(&self, receipt_id: i32, pagination: Pagination) -> Result<ServiceCollection<ResponseCustomizedInventory>, ApiError> {
+        let converter = ConverterService::new();
+        let fallbacks_service = FallbacksService::new();
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            })?;
+
+        let count: i64 = inventories::table
+            .filter(inventories::columns::receipt_id.eq(receipt_id))
+            .select(count(inventories::columns::id))
+            .first(conn)
+            .or_else(|_e| Err(ApiError::NoRecord))?;
+        
+        let (page_offset, per_page) = fallbacks_service.fallback_pagination(&pagination);
+
+        let all_compound_inventories_by_receipt_id_in_this_page_query = 
+            inventories::table
+                .inner_join(products::table)
+                .filter(inventories::columns::receipt_id.eq(receipt_id))
+                .limit(per_page)
+                .offset(page_offset)
+                .select(<(EntityInventory, EntityProduct)>::as_select());
+
+        let all_compound_inventories_by_receipt_id_in_this_page = all_compound_inventories_by_receipt_id_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let receipt_store_currency_query = 
+            receipts::table
+                .inner_join(stores::table)
+                .inner_join(currencies::table)
+                .filter(receipts::columns::id.eq(receipt_id))
+                .select(<(EntityReceipt, EntityStore, EntityCurrency)>::as_select());
+
+        let receipt_store_currency = receipt_store_currency_query.get_results::<(EntityReceipt, EntityStore, EntityCurrency)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+
+        Ok(ServiceCollection {
+            partial_collection: converter.convert_to_customized_inventories_response(all_compound_inventories_by_receipt_id_in_this_page, receipt_store_currency),
+            total_count: count
+        })
+    }
 }
