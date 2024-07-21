@@ -31,6 +31,7 @@ impl AppRouter {
             .route("/api/v1/customized_inventories/:id", get(CustomizedInventoriesHandlers::get_customized_inventory))
             .route("/api/v1/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories))
             .route("/api/v1/products/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_product_id))
+            .route("/api/v1/receipts/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_receipt_id))
             .with_state(repository)
             .layer(
                 TraceLayer::new_for_http()
