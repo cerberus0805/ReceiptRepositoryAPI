@@ -115,4 +115,49 @@ impl CustomizedInventroyService {
             total_count: count
         })
     }
+
+    pub async fn get_customized_inventories_by_product_id(&self, product_id: i32, pagination: Pagination) -> Result<ServiceCollection<ResponseCustomizedInventory>, ApiError> {
+        let converter = ConverterService::new();
+        let fallbacks_service = FallbacksService::new();
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            })?;
+
+        let count: i64 = inventories::table
+            .filter(inventories::columns::product_id.eq(product_id))
+            .select(count(inventories::columns::id))
+            .first(conn)
+            .or_else(|_e| Err(ApiError::NoRecord))?;
+        
+        let (page_offset, per_page) = fallbacks_service.fallback_pagination(&pagination);
+
+        let all_compound_inventories_by_product_id_in_this_page_query = 
+            inventories::table
+                .inner_join(products::table)
+                .filter(inventories::columns::product_id.eq(product_id))
+                .limit(per_page)
+                .offset(page_offset)
+                .select(<(EntityInventory, EntityProduct)>::as_select());
+
+        let all_compound_inventories_by_product_id_in_this_page = all_compound_inventories_by_product_id_in_this_page_query.get_results::<(EntityInventory, EntityProduct)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let receipt_ids_by_product_id = AsRef::<Vec<(EntityInventory, EntityProduct)>>::as_ref(&all_compound_inventories_by_product_id_in_this_page).into_iter().map(|x| x.0.receipt_id as i32).collect::<Vec<i32>>();
+
+        let all_related_receipts_store_currency_by_product_id_in_this_page_query = 
+            receipts::table
+                .inner_join(stores::table)
+                .inner_join(currencies::table)
+                .filter(receipts::columns::id.eq_any(receipt_ids_by_product_id))
+                .select(<(EntityReceipt, EntityStore, EntityCurrency)>::as_select());
+
+        let all_related_receipts_store_currency_by_product_id_in_this_page = all_related_receipts_store_currency_by_product_id_in_this_page_query.get_results::<(EntityReceipt, EntityStore, EntityCurrency)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+
+        Ok(ServiceCollection {
+            partial_collection: converter.convert_to_customized_inventories_response(all_compound_inventories_by_product_id_in_this_page, all_related_receipts_store_currency_by_product_id_in_this_page),
+            total_count: count
+        })
+    }
 }
