@@ -1,5 +1,5 @@
-# ReceiptRepositoryAPI
-An example of Rust WebAPI Server
+# ReceiptRepositoryAPI (Work in Progress)
+An example of Rust WebAPI Server - axum and diesel example
 
 Article in English and Mandarin: https://concurrentseal.wordpress.com/
 
