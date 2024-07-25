@@ -1,26 +1,27 @@
+use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
         collections::service_collection::ServiceCollection, entities::{
-            entity_currency::EntityCurrency, entity_inventory::EntityInventory, entity_product::EntityProduct, entity_receipt::EntityReceipt, entity_store::EntityStore
-        }, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_receipt::ResponseReceipt
+            entity_currency::{EntityCurrency, NewEntityCurrency}, entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::{EntityProduct, NewEntityProduct}, entity_receipt::{EntityReceipt, NewEntityReceipt}, entity_store::{EntityStore, NewEntityStore}
+        }, errors::api_error::ApiError, forms::create_payload::{CreateCurrencyInReceiptPayload, CreateProductInReceiptPayload, CreateReceiptPayload, CreateStoreInReceiptPayload}, parameters::pagination::Pagination, responses::response_receipt::{ResponseCreateReceipt, ResponseReceipt}
     }, 
     repository::DbRepository, 
     schema::{
         currencies, inventories, products, receipts, stores
-    }, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}
+    }, services::v1::{converters::converters_service::ConverterService, currencies::currencies_service::CurrencyService, fallbacks::fallbacks_service::FallbacksService, inventories::inventories_service::InventroyService, products::products_service::ProductService, stores::stores_service::StoreService, validators::formdata_validators_service::{FormDataValidatorService, FormRelationshipModelStatus}}
 };
 
 #[derive(Clone)]
-pub struct ReceiptService {
-    pub repository: DbRepository
+pub struct ReceiptService<'a> {
+    repository: &'a DbRepository
 }
 
-impl ReceiptService {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> ReceiptService<'a> {
+    pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
         }
@@ -104,5 +105,207 @@ impl ReceiptService {
             partial_collection: converter.convert_to_all_receipt_response(all_compound_receipts_in_this_page, all_compound_inventories_in_this_page),
             total_count: count
         })
+    }
+
+    async fn new_receipt(&self, receipt: &NewEntityReceipt) -> Result<i32, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            }
+        )?;
+
+        let entity_receipt = insert_into(receipts::table)
+            .values(receipt)
+            .get_result::<EntityReceipt>(conn).or_else(|e| {
+                tracing::error!("insert receipt entity failed: {}", e);
+                Err(ApiError::InsertReceiptFailed)
+        })?;
+
+        Ok(entity_receipt.id)
+    }
+
+    pub async fn create_receipt(&self, form_receipt: &CreateReceiptPayload) -> Result<ResponseCreateReceipt, ApiError> {
+        let currency_status = self.validate_currency(&form_receipt.currency).await.or_else(|e| {
+            tracing::error!("validate_currency failed");
+            return Err(e);
+        })?;
+
+        let store_status = self.validate_store(&form_receipt.store).await.or_else(|e| {
+            tracing::error!("validate_store failed");
+            return Err(e);
+        })?;
+        
+        let mut inventories_metadata = vec![];
+        for inventory in &form_receipt.inventories {
+            let product_status = self.validate_product(&inventory.product).await.or_else(|e| {
+                tracing::error!("validate_product failed");
+                return Err(e);
+            })?;
+            inventories_metadata.push((product_status, inventory));
+        }
+
+        let currency_ref_id;
+        if currency_status == FormRelationshipModelStatus::Id {
+            currency_ref_id = form_receipt.currency.id.expect("currency id should not be none after validation");
+        }
+        else  {
+            // None status will not reach here
+            let new_currency = NewEntityCurrency {
+                name: form_receipt.currency.name.clone().expect("currency name should not ")
+            };
+            
+            let currency_service = CurrencyService::new(&self.repository);
+            currency_ref_id = currency_service.new_currency(&new_currency).await?;
+        }
+
+        let store_ref_id;
+        if store_status == FormRelationshipModelStatus::Id {
+            store_ref_id = form_receipt.store.id.expect("store id should not be none after validation")
+        }
+        else {
+            // None status will not reach here
+            let new_store = NewEntityStore {
+                name: form_receipt.store.name.clone().expect("store name should not be none after validation"),
+                alias: form_receipt.store.alias.clone(),
+                branch: form_receipt.store.branch.clone(),
+                address: form_receipt.store.address.clone()
+            };
+
+            let store_service = StoreService::new(&self.repository);
+            store_ref_id = store_service.new_store(&new_store).await?;
+        }
+
+        let new_receipt = NewEntityReceipt {
+            transaction_date: form_receipt.transaction_date,
+            is_inventory_taxed: form_receipt.is_inventory_taxed,
+            currency_id: currency_ref_id,
+            store_id: store_ref_id
+        };
+
+        let receipt_ref_id = self.new_receipt(&new_receipt).await?;
+        
+        for pair in inventories_metadata {
+            let product_ref_id;
+            if pair.0 == FormRelationshipModelStatus::Id {
+                product_ref_id = pair.1.product.id.expect("product id should not be none")
+            }
+            else {
+                // None status will not reach here
+                let new_product = NewEntityProduct {
+                    name: pair.1.product.name.clone().expect("product name should not be none after validation"),
+                    alias: pair.1.product.alias.clone(),
+                    specification_amount: pair.1.product.specification_amount.clone(),
+                    specification_unit: pair.1.product.specification_unit.clone(),
+                    specification_others: pair.1.product.specification_others.clone(),
+                    brand: pair.1.product.brand.clone()
+                };
+
+                let product_service = ProductService::new(&self.repository);
+                product_ref_id = product_service.new_product(&new_product).await?;
+            }
+
+            let new_inventory = NewEntityInventory {
+                price: BigDecimal::from_f64(pair.1.price.clone()).expect("parse price should be successful after validation"),
+                quantity: pair.1.quantity.clone(),
+                product_id: product_ref_id,
+                receipt_id: receipt_ref_id
+            };
+
+            let inventory_service = InventroyService::new(&self.repository);
+            let _inventory_id = inventory_service.new_inventory(&new_inventory).await?;
+        }
+        
+        // let mut insert_clauses = vec![];
+        Ok(ResponseCreateReceipt {
+            id: receipt_ref_id
+        })
+    }
+
+    async fn validate_currency(&self, currency: &CreateCurrencyInReceiptPayload) -> Result<FormRelationshipModelStatus, ApiError> {
+        let formdata_validators_service = FormDataValidatorService::new();
+        let currency_status = formdata_validators_service.validate_relationship_model(currency);
+        if currency_status == FormRelationshipModelStatus::None {
+            tracing::error!("invalid currency");
+            return Err(ApiError::FormFieldCurrencyInvalid);
+        }
+        
+        let currency_service = CurrencyService::new(&self.repository);
+        if currency_status == FormRelationshipModelStatus::Id {
+            let currency_id = currency.id.expect("currency id should not be none").clone();
+            let is_existed = currency_service.is_currency_existed_by_id(currency_id).await?;
+            if !is_existed {
+                return Err(ApiError::FormFieldCurrencyIdNotExisted);
+            }
+        }
+        else if currency_status == FormRelationshipModelStatus::ItemName {
+            let currency_name = currency.name.as_ref().expect("currency name should not be none");
+            let is_existed = currency_service.is_currency_existed_by_name(currency_name).await?;
+            if is_existed {
+                return Err(ApiError::FormFieldCurrencyNameDuplicated);
+            }
+        }
+
+        Ok(currency_status)
+    }
+
+    async fn validate_store(&self, store: &CreateStoreInReceiptPayload) -> Result<FormRelationshipModelStatus, ApiError> {
+        let formdata_validators_service = FormDataValidatorService::new();
+        let store_status = formdata_validators_service.validate_relationship_model(store);
+        if store_status == FormRelationshipModelStatus::None {
+            tracing::error!("invalid store");
+            return Err(ApiError::FormFieldStoreInvalid);
+        }
+        let store_id;
+        let store_name;
+        let store_branch;
+        let store_service = StoreService::new(&self.repository);
+        if store_status == FormRelationshipModelStatus::Id {
+            store_id = store.id.expect("store id should not be none");
+            let is_existed = store_service.is_store_existed_by_id(store_id).await?;
+            if !is_existed {
+                return Err(ApiError::FormFieldStoreInvalid);
+            }
+        }
+        else if store_status == FormRelationshipModelStatus::ItemName {
+            store_name = store.name.as_ref().expect("store name should not be none");
+            store_branch = store.branch.as_ref();
+            let is_existed = store_service.is_store_existed_by_name_and_branch(store_name, store_branch).await?;
+            if is_existed {
+                return Err(ApiError::FormFieldStoreNameDuplicated);
+            }
+        }
+
+        Ok(store_status)
+    }
+
+    async fn validate_product(&self, product: &CreateProductInReceiptPayload) -> Result<FormRelationshipModelStatus, ApiError> {
+        let formdata_validators_service = FormDataValidatorService::new();
+        let product_status = formdata_validators_service.validate_relationship_model(product);
+        if product_status == FormRelationshipModelStatus::None {
+            return Err(ApiError::FormFieldStoreInvalid);
+        }
+
+        let product_service = ProductService::new(&self.repository);
+        if product_status == FormRelationshipModelStatus::Id {
+            let product_id = product.id.expect("product id should not be none");
+            let is_existed =  product_service.is_product_existed_by_id(product_id).await?;
+            if !is_existed {
+                return Err(ApiError::FormFieldProductIdNotExisted);
+            }
+        }
+        else {
+            let product_name = product.name.as_ref().expect("product name should not be none");
+            let product_brand = product.brand.as_ref();
+            let product_spec_amount = product.specification_amount.as_ref();
+            let product_spec_unit = product.specification_unit.as_ref();
+            let product_spec_others = product.specification_others.as_ref();
+            let is_existed = product_service.is_product_existed_by_name(product_name, product_brand, product_spec_amount, product_spec_unit, product_spec_others).await?;
+            if is_existed {
+                return Err(ApiError::FormFieldCurrencyNameDuplicated);
+            }
+        }
+
+        Ok(product_status)
     }
 }

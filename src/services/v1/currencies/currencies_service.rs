@@ -1,15 +1,15 @@
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
-use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::EntityCurrency, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
+use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::{EntityCurrency, NewEntityCurrency}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
-pub struct CurrencyService {
-    repository: DbRepository
+pub struct CurrencyService<'a> {
+    repository: &'a DbRepository
 }
 
-impl CurrencyService {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> CurrencyService<'a> {
+    pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
         }
@@ -62,5 +62,49 @@ impl CurrencyService {
                 total_count: count
             }
         })
+    }
+
+    pub async fn is_currency_existed_by_id(&self, id: i32) -> Result<bool, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let count: i64 = currencies::table
+            .filter(currencies::id.eq(id))
+            .count()
+            .get_result(conn)
+            .unwrap_or(0i64);
+        Ok(count == 1)
+    }
+
+    pub async fn is_currency_existed_by_name(&self, name: &String) -> Result<bool, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let count: i64 = currencies::table
+            .filter(currencies::name.eq(name))
+            .count()
+            .get_result(conn)
+            .unwrap_or(0i64);
+        Ok(count == 1)
+    }
+
+    pub async fn new_currency(&self, currency: &NewEntityCurrency) -> Result<i32, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let entity_currency = insert_into(currencies::table)
+            .values(currency)
+            .get_result::<EntityCurrency>(conn).or_else(|e| {
+                tracing::error!("insert currency entity failed: {}", e);
+                Err(ApiError::InsertCurrencyFailed)
+            })?;
+
+        Ok(entity_currency.id)
     }
 }

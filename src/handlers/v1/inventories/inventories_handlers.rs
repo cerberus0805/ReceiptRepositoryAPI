@@ -9,7 +9,7 @@ pub struct InventoriesHandlers {
 
 impl InventoriesHandlers {
     pub async fn get_inventory(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = InventroyService::new(repository);
+        let service = InventroyService::new(&repository);
         if let Ok(r_id) = id {
             let response_inventory = service.get_receipt(r_id.0 as i32).await;
             match response_inventory {
@@ -43,7 +43,7 @@ impl InventoriesHandlers {
     }
 
     pub async fn get_inventories(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = InventroyService::new(repository);
+        let service = InventroyService::new(&repository);
         let inventory_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
         match inventory_collection {
             Ok(responses) => {

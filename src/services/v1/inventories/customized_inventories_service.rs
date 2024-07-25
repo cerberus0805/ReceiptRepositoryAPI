@@ -22,12 +22,12 @@ use crate::{
     }
 };
 
-pub struct CustomizedInventroyService {
-    repository: DbRepository
+pub struct CustomizedInventroyService<'a> {
+    repository: &'a DbRepository
 }
 
-impl CustomizedInventroyService {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> CustomizedInventroyService<'a> {
+    pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
         }

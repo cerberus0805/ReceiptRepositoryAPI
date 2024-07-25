@@ -8,7 +8,7 @@ pub struct StoresHandlers {
 
 impl StoresHandlers {
     pub async fn get_store(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = StoreService::new(repository);
+        let service = StoreService::new(&repository);
         if let Ok(s_id) = id {
             let response_store = service.get_store(s_id.0 as i32).await;
             match response_store {
@@ -42,7 +42,7 @@ impl StoresHandlers {
     }
 
     pub async fn get_stores(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = StoreService::new(repository);
+        let service = StoreService::new(&repository);
         let store_collection = service.get_stores(pagination.unwrap_or_default().0).await;
         match store_collection {
             Ok(responses) => {
