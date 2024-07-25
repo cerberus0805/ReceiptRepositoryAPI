@@ -8,7 +8,6 @@ pub struct  CurrenciesHandlers {
 impl CurrenciesHandlers {
     pub async fn get_currency(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = CurrencyService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
         if let Ok(c_id) = id {
             let response_currency = service.get_currency(c_id.0 as i32).await;
             match response_currency {
@@ -20,6 +19,7 @@ impl CurrenciesHandlers {
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
                     let http_status_code = api_error_converter_service.get_http_status_from_api_error(&e);
 
                     let payload = ResponseCurrencyPayload {
@@ -42,7 +42,6 @@ impl CurrenciesHandlers {
 
     pub async fn get_currencies(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = CurrencyService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
         let currencies_collection = service.get_currencies(pagination.unwrap_or_default().0).await;
         match currencies_collection {
             Ok(responses) => {
@@ -54,6 +53,7 @@ impl CurrenciesHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                let api_error_converter_service = ApiErrorConventerService::new();
                 let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
                 let payload = ResponseCurrenciesPayload {
                     data: None,
