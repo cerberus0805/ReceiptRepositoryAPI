@@ -9,18 +9,18 @@ pub struct ProductsHandlers {
 impl ProductsHandlers {
     pub async fn get_product(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
         let service = ProductService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
         if let Ok(s_id) = id {
             let response_product = service.get_product(s_id.0 as i32).await;
             match response_product {
                 Ok(response) => {
-                    let payload = ResponseProductPayload {
+                    let payload: ResponseProductPayload = ResponseProductPayload {
                         data: Some(response),
                         error: None
                     };
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
                     let http_status_code = api_error_converter_service.get_http_status_from_api_error(&e);
 
                     let payload = ResponseProductPayload {
@@ -43,7 +43,6 @@ impl ProductsHandlers {
 
     pub async fn get_products(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ProductService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
         let product_collection = service.get_products(pagination.unwrap_or_default().0).await;
         match product_collection {
             Ok(responses) => {
@@ -55,6 +54,7 @@ impl ProductsHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                let api_error_converter_service = ApiErrorConventerService::new();
                 let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
                 let payload = ResponseProductsPayload {
                     data: None,
