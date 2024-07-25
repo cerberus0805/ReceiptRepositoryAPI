@@ -1,22 +1,22 @@
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
-        collections::service_collection::ServiceCollection, entities::entity_store::EntityStore, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_store::ResponseStore
+        collections::service_collection::ServiceCollection, entities::entity_store::{EntityStore, NewEntityStore}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_store::ResponseStore
     }, 
     repository::DbRepository, 
     schema::stores, 
     services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}
 };
 
-pub struct StoreService {
-    pub repository: DbRepository
+pub struct StoreService<'a> {
+    repository: &'a DbRepository
 }
 
-impl StoreService {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> StoreService<'a> {
+    pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
         }
@@ -69,5 +69,62 @@ impl StoreService {
                 total_count: count
             }
         })
+    }
+    
+    pub async fn is_store_existed_by_id(&self, id: i32) -> Result<bool, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+        let count: i64 = stores::table
+            .filter(stores::id.eq(id))
+            .count()
+            .get_result(conn)
+            .unwrap_or(0i64);
+        Ok(count == 1)
+    }
+
+    pub async fn is_store_existed_by_name_and_branch(&self, name: &String, branch: Option<&String>) -> Result<bool, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+        let count: i64;
+        // Compare the below with products_service::is_product_existed_by_name method, we keep the below to make a contrast
+        match branch {
+            Some(store_branch) => {
+                count = stores::table
+                    .filter(stores::name.eq(name))
+                    .filter(stores::branch.eq(store_branch))
+                    .count()
+                    .get_result(conn)
+                    .unwrap_or(0i64);
+            },
+            None => {
+                count = stores::table
+                    .filter(stores::name.eq(name))
+                    .count()
+                    .get_result(conn)
+                    .unwrap_or(0i64);
+            }
+        }
+
+        Ok(count == 1)
+    }
+
+    pub async fn new_store(&self, store: &NewEntityStore) ->Result<i32, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let entity_store = insert_into(stores::table)
+            .values(store)
+            .get_result::<EntityStore>(conn).or_else(|e| {
+                tracing::error!("insert store entity failed: {}", e);
+                Err(ApiError::InsertStoreFailed)
+        })?;
+
+        Ok(entity_store.id)
     }
 }

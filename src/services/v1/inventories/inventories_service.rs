@@ -1,15 +1,15 @@
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
-use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::EntityInventory, entity_product::EntityProduct}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
+use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::EntityProduct}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
-pub struct InventroyService {
-    pub repository: DbRepository
+pub struct InventroyService<'a> {
+    repository: &'a DbRepository
 }
 
-impl InventroyService {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> InventroyService<'a> {
+    pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
         }
@@ -21,7 +21,7 @@ impl InventroyService {
             |e| {
                 tracing::error!("database connection broken: {}", e);
                 Err(ApiError::DatabaseConnectionBroken)
-            })?;
+        })?;
 
         let inventory_query = 
             inventories::table
@@ -33,7 +33,7 @@ impl InventroyService {
             |e| {
                 tracing::warn!("try to get a non existed inventory ({}): {}", id, e);
                 Err(ApiError::NoRecord)
-            })?;
+        })?;
 
 
         let inventory_response = converter.convert_to_inventory_response(inventory, product);
@@ -48,7 +48,7 @@ impl InventroyService {
             |e| {
                 tracing::error!("database connection broken: {}", e);
                 Err(ApiError::DatabaseConnectionBroken)
-            })?;
+        })?;
 
         let count: i64 = inventories::table.select(count(inventories::columns::id)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
         
@@ -67,5 +67,22 @@ impl InventroyService {
             partial_collection: converter.convert_to_all_inventories_response(all_compound_inventories_in_this_page),
             total_count: count
         })
+    }
+
+    pub async fn new_inventory(&self, inventory: &NewEntityInventory) -> Result<i32, ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let entity_inventory = insert_into(inventories::table)
+            .values(inventory)
+            .get_result::<EntityInventory>(conn).or_else(|e| {
+                tracing::error!("insert inventory entity failed: {}", e);
+                Err(ApiError::InsertInventoryFailed)
+        })?;
+
+        Ok(entity_inventory.id)
     }
 }

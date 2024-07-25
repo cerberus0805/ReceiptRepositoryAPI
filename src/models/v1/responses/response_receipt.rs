@@ -30,3 +30,14 @@ pub struct ReponseReceiptsPayload {
     pub total: Option<i64>,
     pub error: Option<ApiError>
 }
+
+#[derive(Serialize)]
+pub struct ResponseCreateReceipt {
+    pub id: i32,
+}
+
+#[derive(Serialize)]
+pub struct ResponseCreateReceiptPayload {
+    pub data: Option<ResponseCreateReceipt>,
+    pub error: Option<ApiError>
+}

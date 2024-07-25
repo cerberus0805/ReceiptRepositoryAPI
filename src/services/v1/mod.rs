@@ -5,3 +5,4 @@ pub mod fallbacks;
 pub mod currencies;
 pub mod products;
 pub mod inventories;
+pub mod validators;

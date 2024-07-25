@@ -9,8 +9,7 @@ pub struct InventoriesHandlers {
 
 impl InventoriesHandlers {
     pub async fn get_inventory(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = InventroyService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
+        let service = InventroyService::new(&repository);
         if let Ok(r_id) = id {
             let response_inventory = service.get_receipt(r_id.0 as i32).await;
             match response_inventory {
@@ -23,6 +22,7 @@ impl InventoriesHandlers {
                     (StatusCode::OK, Json(payload))
                 },
                 Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
                     let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
 
                     let payload = ResponseInventoryPayload {
@@ -43,8 +43,7 @@ impl InventoriesHandlers {
     }
 
     pub async fn get_inventories(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = InventroyService::new(repository);
-        let api_error_converter_service = ApiErrorConventerService::new();
+        let service = InventroyService::new(&repository);
         let inventory_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
         match inventory_collection {
             Ok(responses) => {
@@ -56,6 +55,7 @@ impl InventoriesHandlers {
                 (StatusCode::OK, Json(payload))
             },
             Err(e) => {
+                let api_error_converter_service = ApiErrorConventerService::new();
                 let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
                 let payload = ResponseInventoriesPayload {
                     data: None,
