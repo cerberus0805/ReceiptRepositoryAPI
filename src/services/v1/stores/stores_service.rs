@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub struct StoreService {
-    pub repository: DbRepository
+    repository: DbRepository
 }
 
 impl StoreService {

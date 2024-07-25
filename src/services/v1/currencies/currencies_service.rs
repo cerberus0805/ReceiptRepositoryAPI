@@ -5,7 +5,7 @@ use diesel::{
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::EntityCurrency, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
 pub struct CurrencyService {
-    pub repository: DbRepository
+    repository: DbRepository
 }
 
 impl CurrencyService {

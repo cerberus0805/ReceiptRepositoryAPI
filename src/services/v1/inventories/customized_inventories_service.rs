@@ -23,7 +23,7 @@ use crate::{
 };
 
 pub struct CustomizedInventroyService {
-    pub repository: DbRepository
+    repository: DbRepository
 }
 
 impl CustomizedInventroyService {

@@ -5,7 +5,7 @@ use diesel::{
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::EntityInventory, entity_product::EntityProduct}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
 pub struct InventroyService {
-    pub repository: DbRepository
+    repository: DbRepository
 }
 
 impl InventroyService {
