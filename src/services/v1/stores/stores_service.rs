@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
@@ -76,12 +76,10 @@ impl<'a> StoreService<'a> {
             tracing::error!("database connection broken: {}", e);
             Err(ApiError::DatabaseConnectionBroken)
         })?;
-        let count: i64 = stores::table
-            .filter(stores::id.eq(id))
-            .count()
-            .get_result(conn)
-            .unwrap_or(0i64);
-        Ok(count == 1)
+
+        select(exists(stores::table.filter(stores::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
+            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+        })
     }
 
     pub async fn is_store_existed_by_name_and_branch(&self, name: &String, branch: Option<&String>) -> Result<bool, ApiError> {
@@ -89,27 +87,20 @@ impl<'a> StoreService<'a> {
             tracing::error!("database connection broken: {}", e);
             Err(ApiError::DatabaseConnectionBroken)
         })?;
-        let count: i64;
+
         // Compare the below with products_service::is_product_existed_by_name method, we keep the below to make a contrast
         match branch {
             Some(store_branch) => {
-                count = stores::table
-                    .filter(stores::name.eq(name))
-                    .filter(stores::branch.eq(store_branch))
-                    .count()
-                    .get_result(conn)
-                    .unwrap_or(0i64);
+                select(exists(stores::table.filter(stores::name.eq(name)).filter(stores::branch.eq(store_branch)))).get_result::<bool>(conn).or_else(|_e| {
+                    Err(ApiError::FormFieldStoreNameDuplicated)
+                })
             },
             None => {
-                count = stores::table
-                    .filter(stores::name.eq(name))
-                    .count()
-                    .get_result(conn)
-                    .unwrap_or(0i64);
+                select(exists(stores::table.filter(stores::name.eq(name)))).get_result::<bool>(conn).or_else(|_e| {
+                    Err(ApiError::FormFieldStoreNameDuplicated)
+                })
             }
         }
-
-        Ok(count == 1)
     }
 
     pub async fn new_store(&self, store: &NewEntityStore) ->Result<i32, ApiError> {

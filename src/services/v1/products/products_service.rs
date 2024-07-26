@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
@@ -76,13 +76,10 @@ impl<'a> ProductService<'a> {
             tracing::error!("database connection broken: {}", e);
             Err(ApiError::DatabaseConnectionBroken)
         })?;
-        let count: i64 = products::table
-            .filter(products::id.eq(id))
-            .count()
-            .get_result(conn)
-            .unwrap_or(0i64);
 
-        Ok(count == 1)
+        select(exists(products::table.filter(products::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
+            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+        })
     }
 
     pub async fn is_product_existed_by_name(&self, name: &String, brand: Option<&String>, spec_amount: Option<&i32>, spec_unit: Option<&String>, spec_others: Option<&String>) -> Result<bool, ApiError> {
@@ -109,9 +106,9 @@ impl<'a> ProductService<'a> {
             product_filter = product_filter.filter(products::specification_others.eq(spec_others.expect("spec_others should not be none")));
         }
 
-        let count: i64 = product_filter.count().get_result(conn).unwrap_or(0i64);
-
-        Ok(count == 1)
+        select(exists(product_filter)).get_result::<bool>(conn).or_else(|_e| {
+            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+        })
     }
 
     pub async fn new_product(&self, product: &NewEntityProduct) -> Result<i32, ApiError> {

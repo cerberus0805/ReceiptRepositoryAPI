@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::{EntityCurrency, NewEntityCurrency}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
@@ -70,12 +70,9 @@ impl<'a> CurrencyService<'a> {
             Err(ApiError::DatabaseConnectionBroken)
         })?;
 
-        let count: i64 = currencies::table
-            .filter(currencies::id.eq(id))
-            .count()
-            .get_result(conn)
-            .unwrap_or(0i64);
-        Ok(count == 1)
+        select(exists(currencies::table.filter(currencies::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
+            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+        })
     }
 
     pub async fn is_currency_existed_by_name(&self, name: &String) -> Result<bool, ApiError> {
@@ -84,12 +81,9 @@ impl<'a> CurrencyService<'a> {
             Err(ApiError::DatabaseConnectionBroken)
         })?;
 
-        let count: i64 = currencies::table
-            .filter(currencies::name.eq(name))
-            .count()
-            .get_result(conn)
-            .unwrap_or(0i64);
-        Ok(count == 1)
+        select(exists(currencies::table.filter(currencies::name.eq(name)))).get_result::<bool>(conn).or_else(|_e| {
+            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+        })
     }
 
     pub async fn new_currency(&self, currency: &NewEntityCurrency) -> Result<i32, ApiError> {
