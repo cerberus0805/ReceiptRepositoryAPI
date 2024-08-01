@@ -10,6 +10,7 @@ chrono = { version = "0.4.38", features = ["default", "serde"] }
 diesel = { version = "2.2.1", features = ["postgres", "extras"] }
 dotenvy = "0.15.7"
 serde = { version = "1.0.203", features = ["std", "serde_derive"] }
+serde_with = { version = "3.9.0", features = ["std", "alloc", "chrono", "json"] }
 thiserror = "1.0.61"
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["trace"] }

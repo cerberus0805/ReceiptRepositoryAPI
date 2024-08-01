@@ -101,4 +101,8 @@ impl<'a> CurrencyService<'a> {
 
         Ok(entity_currency.id)
     }
+
+    pub async fn patch_currency(&self, _id: i32) -> Result<(), ApiError> {
+        Ok(())
+    }
 }
