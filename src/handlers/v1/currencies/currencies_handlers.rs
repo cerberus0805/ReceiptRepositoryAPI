@@ -66,10 +66,11 @@ impl CurrenciesHandlers {
     }
 
     pub async fn patch_currency(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>,  payload: Result<Json<PatchCurrencyPayload>, JsonRejection>) -> impl IntoResponse {
-        tracing::info!("{:#?}", payload);
-        let service = CurrencyService::new(&repository);
-        if let Ok(c_id) = id {
-            match service.patch_currency(c_id.0 as i32).await {
+        if id.is_ok() && payload.is_ok() {
+            let c_id = id.expect("id should be ok after we have checked").0;
+            let c_payload = payload.expect("payload should be ok after we have checked").0;
+            let service = CurrencyService::new(&repository);
+            match service.patch_currency(c_id as i32, &c_payload).await {
                 Ok(_) => {
                     let payload = ResponseCurrencyPayload {
                         data: None,

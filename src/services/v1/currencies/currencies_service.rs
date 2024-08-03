@@ -1,8 +1,8 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
 };
 
-use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::{EntityCurrency, NewEntityCurrency}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
+use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::{EntityCurrency, NewEntityCurrency, UpdateEntityCurrency}, errors::api_error::ApiError, forms::patch_payload::PatchCurrencyPayload, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
 pub struct CurrencyService<'a> {
     repository: &'a DbRepository
@@ -71,7 +71,7 @@ impl<'a> CurrencyService<'a> {
         })?;
 
         select(exists(currencies::table.filter(currencies::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
-            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+            Err(ApiError::CurrencyIdNotExisted)  
         })
     }
 
@@ -82,7 +82,7 @@ impl<'a> CurrencyService<'a> {
         })?;
 
         select(exists(currencies::table.filter(currencies::name.eq(name)))).get_result::<bool>(conn).or_else(|_e| {
-            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+            Err(ApiError::CurrencyIdNotExisted)  
         })
     }
 
@@ -102,7 +102,22 @@ impl<'a> CurrencyService<'a> {
         Ok(entity_currency.id)
     }
 
-    pub async fn patch_currency(&self, _id: i32) -> Result<(), ApiError> {
+    pub async fn patch_currency(&self, id: i32, patch_payload: &PatchCurrencyPayload) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let update_currency = UpdateEntityCurrency {
+            id,
+            name: &patch_payload.name
+        };
+
+        update_currency.save_changes::<EntityCurrency>(conn).or_else(|e| {
+            tracing::error!("update currency entity failed: {}", e);
+            Err(ApiError::UpdateCurrencyFailed)
+        })?;
+
         Ok(())
     }
 }

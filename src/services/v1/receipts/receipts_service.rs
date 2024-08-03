@@ -1,13 +1,13 @@
 use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::{
-    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
         collections::service_collection::ServiceCollection, entities::{
             entity_currency::{EntityCurrency, NewEntityCurrency}, entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::{EntityProduct, NewEntityProduct}, entity_receipt::{EntityReceipt, NewEntityReceipt}, entity_store::{EntityStore, NewEntityStore}
-        }, errors::api_error::ApiError, forms::create_payload::{CreateCurrencyInReceiptPayload, CreateProductInReceiptPayload, CreateReceiptPayload, CreateStoreInReceiptPayload}, parameters::pagination::Pagination, responses::response_receipt::{ResponseCreateReceipt, ResponseReceipt}
+        }, errors::api_error::ApiError, forms::{create_payload::{CreateCurrencyInReceiptPayload, CreateProductInReceiptPayload, CreateReceiptPayload, CreateStoreInReceiptPayload}, patch_payload::PatchReceiptPayload}, parameters::pagination::Pagination, responses::response_receipt::{ResponseCreateReceipt, ResponseReceipt}
     }, 
     repository::DbRepository, 
     schema::{
@@ -227,7 +227,7 @@ impl<'a> ReceiptService<'a> {
         let currency_status = formdata_validators_service.validate_relationship_model(currency);
         if currency_status == FormRelationshipModelStatus::None {
             tracing::error!("invalid currency");
-            return Err(ApiError::FormFieldCurrencyInvalid);
+            return Err(ApiError::CurrencyInvalid);
         }
         
         let currency_service = CurrencyService::new(&self.repository);
@@ -235,14 +235,14 @@ impl<'a> ReceiptService<'a> {
             let currency_id = currency.id.expect("currency id should not be none").clone();
             let is_existed = currency_service.is_currency_existed_by_id(currency_id).await?;
             if !is_existed {
-                return Err(ApiError::FormFieldCurrencyIdNotExisted);
+                return Err(ApiError::CurrencyIdNotExisted);
             }
         }
         else if currency_status == FormRelationshipModelStatus::ItemName {
             let currency_name = currency.name.as_ref().expect("currency name should not be none");
             let is_existed = currency_service.is_currency_existed_by_name(currency_name).await?;
             if is_existed {
-                return Err(ApiError::FormFieldCurrencyNameDuplicated);
+                return Err(ApiError::CurrencyNameDuplicated);
             }
         }
 
@@ -254,7 +254,7 @@ impl<'a> ReceiptService<'a> {
         let store_status = formdata_validators_service.validate_relationship_model(store);
         if store_status == FormRelationshipModelStatus::None {
             tracing::error!("invalid store");
-            return Err(ApiError::FormFieldStoreInvalid);
+            return Err(ApiError::StoreInvalid);
         }
         let store_id;
         let store_name;
@@ -264,7 +264,7 @@ impl<'a> ReceiptService<'a> {
             store_id = store.id.expect("store id should not be none");
             let is_existed = store_service.is_store_existed_by_id(store_id).await?;
             if !is_existed {
-                return Err(ApiError::FormFieldStoreInvalid);
+                return Err(ApiError::StoreInvalid);
             }
         }
         else if store_status == FormRelationshipModelStatus::ItemName {
@@ -272,7 +272,7 @@ impl<'a> ReceiptService<'a> {
             store_branch = store.branch.as_ref();
             let is_existed = store_service.is_store_existed_by_name_and_branch(store_name, store_branch).await?;
             if is_existed {
-                return Err(ApiError::FormFieldStoreNameDuplicated);
+                return Err(ApiError::StoreNameDuplicated);
             }
         }
 
@@ -283,7 +283,7 @@ impl<'a> ReceiptService<'a> {
         let formdata_validators_service = FormDataValidatorService::new();
         let product_status = formdata_validators_service.validate_relationship_model(product);
         if product_status == FormRelationshipModelStatus::None {
-            return Err(ApiError::FormFieldStoreInvalid);
+            return Err(ApiError::StoreInvalid);
         }
 
         let product_service = ProductService::new(&self.repository);
@@ -291,7 +291,7 @@ impl<'a> ReceiptService<'a> {
             let product_id = product.id.expect("product id should not be none");
             let is_existed =  product_service.is_product_existed_by_id(product_id).await?;
             if !is_existed {
-                return Err(ApiError::FormFieldProductIdNotExisted);
+                return Err(ApiError::ProductIdNotExisted);
             }
         }
         else {
@@ -302,10 +302,38 @@ impl<'a> ReceiptService<'a> {
             let product_spec_others = product.specification_others.as_ref();
             let is_existed = product_service.is_product_existed_by_name(product_name, product_brand, product_spec_amount, product_spec_unit, product_spec_others).await?;
             if is_existed {
-                return Err(ApiError::FormFieldCurrencyNameDuplicated);
+                return Err(ApiError::CurrencyNameDuplicated);
             }
         }
 
         Ok(product_status)
+    }
+
+    pub async fn patch_receipt(&self, id: i32, receipt: &PatchReceiptPayload) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        if receipt.transaction_date.is_some() && receipt.is_inventory_taxed.is_some() {
+            update(receipts::table.filter(receipts::id.eq(id))).set((receipts::transaction_date.eq(receipt.transaction_date.expect("transaction_date should not be none")), receipts::is_inventory_taxed.eq(receipt.is_inventory_taxed.expect("is_inventory_taxed should nt be none")))).execute(conn).or_else(|e| {
+                tracing::error!("update receipt entity failed: {}", e);
+                Err(ApiError::UpdateReceiptFailed)
+            })?;
+        }
+        else if receipt.transaction_date.is_some() {
+            update(receipts::table.filter(receipts::id.eq(id))).set(receipts::transaction_date.eq(receipt.transaction_date.expect("transaction_date should not be none"))).execute(conn).or_else(|e| {
+                tracing::error!("update receipt entity failed: {}", e);
+                Err(ApiError::UpdateReceiptFailed)
+            })?;
+        }
+        else if receipt.is_inventory_taxed.is_some() {
+            update(receipts::table.filter(receipts::id.eq(id))).set(receipts::is_inventory_taxed.eq(receipt.is_inventory_taxed.expect("is_inventory_taxed should not be none"))).execute(conn).or_else(|e| {
+                tracing::error!("update receipt entity failed: {}", e);
+                Err(ApiError::UpdateReceiptFailed)
+            })?;
+        }
+
+        Ok(())
     }
 }
