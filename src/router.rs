@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::{
-    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, response::Response, routing::{get, post}, Router
+    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, response::Response, routing::{get, patch, post}, Router
 };
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{info_span, Span};
@@ -21,14 +21,19 @@ impl AppRouter {
             .route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt))
             .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
             .route("/api/v1/receipts", post(ReceiptsHandlers::post_receipt))
+            .route("/api/v1/receipts/:id", patch(ReceiptsHandlers::patch_receipt))
             .route("/api/v1/stores/:id", get(StoresHandlers::get_store))
             .route("/api/v1/stores", get(StoresHandlers::get_stores))
+            .route("/api/v1/stores/:id", patch(StoresHandlers::patch_store))
             .route("/api/v1/currencies/:id", get(CurrenciesHandlers::get_currency))
             .route("/api/v1/currencies", get(CurrenciesHandlers::get_currencies))
+            .route("/api/v1/currencies/:id", patch(CurrenciesHandlers::patch_currency))
             .route("/api/v1/products/:id", get(ProductsHandlers::get_product))
             .route("/api/v1/products", get(ProductsHandlers::get_products))
+            .route("/api/v1/products/:id", patch(ProductsHandlers::patch_product))
             .route("/api/v1/inventories/:id", get(InventoriesHandlers::get_inventory))
             .route("/api/v1/inventories", get(InventoriesHandlers::get_inventories))
+            .route("/api/v1/inventories/:id", patch(InventoriesHandlers::patch_inventory))
             .route("/api/v1/customized_inventories/:id", get(CustomizedInventoriesHandlers::get_customized_inventory))
             .route("/api/v1/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories))
             .route("/api/v1/products/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_product_id))

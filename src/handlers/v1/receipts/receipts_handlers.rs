@@ -12,7 +12,7 @@ use axum::{
 use crate::{
     models::v1::{
         errors::api_error::ApiError, 
-        forms::create_payload::CreateReceiptPayload, 
+        forms::{create_payload::CreateReceiptPayload, patch_payload::PatchReceiptPayload}, 
         parameters::pagination::Pagination, 
         responses::response_receipt::{
             ReponseReceiptPayload, 
@@ -118,6 +118,41 @@ impl ReceiptsHandlers {
                 data: None,
                 error: Some(ApiError::InvalidParameter)
             };
+            (StatusCode::BAD_REQUEST, Json(payload))
+        }
+    }
+
+    pub async fn patch_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>,  payload: Result<Json<PatchReceiptPayload>, JsonRejection>) -> impl IntoResponse {
+        if id.is_ok() && payload.is_ok() {
+            let r_id = id.expect("id should be ok after we have checked").0;
+            let r_payload = payload.expect("payload should be ok after we have checked").0;
+            let service = ReceiptService::new(&repository);
+            match service.patch_receipt(r_id as i32, &r_payload).await {
+                Ok(_) => {
+                    let payload = ReponseReceiptPayload {
+                        data: None,
+                        error: None
+                    };
+        
+                    (StatusCode::OK, Json(payload))
+                },
+                Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
+                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
+                    let payload = ReponseReceiptPayload {
+                        data: None,
+                        error: Some(e)
+                    };
+                    (http_return_code, Json(payload))
+                }
+            }
+        }
+        else {
+            let payload = ReponseReceiptPayload {
+                data: None,
+                error: Some(ApiError::InvalidParameter)
+            };
+
             (StatusCode::BAD_REQUEST, Json(payload))
         }
     }

@@ -1,8 +1,9 @@
+use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::{
-    dsl::count, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::count, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
-use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::EntityProduct}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
+use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::EntityProduct}, errors::api_error::ApiError, forms::patch_payload::PatchInventoryPayload, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
 pub struct InventroyService<'a> {
     repository: &'a DbRepository
@@ -15,7 +16,7 @@ impl<'a> InventroyService<'a> {
         }
     }
 
-    pub async fn get_receipt(&self, id: i32) -> Result<ResponseInventory, ApiError> {
+    pub async fn get_inventory(&self, id: i32) -> Result<ResponseInventory, ApiError> {
         let converter = ConverterService::new();
         let conn = &mut self.repository.pool.get().or_else(
             |e| {
@@ -41,7 +42,7 @@ impl<'a> InventroyService<'a> {
         Ok(inventory_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseInventory>, ApiError> {
+    pub async fn get_inventories(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseInventory>, ApiError> {
         let converter = ConverterService::new();
         let fallbacks_service = FallbacksService::new();
         let conn = &mut self.repository.pool.get().or_else(
@@ -84,5 +85,40 @@ impl<'a> InventroyService<'a> {
         })?;
 
         Ok(entity_inventory.id)
+    }
+
+    pub async fn patch_inventory(&self, id: i32, inventory: &PatchInventoryPayload) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let mut entity_inventory: EntityInventory = inventories::table.filter(inventories::id.eq(id)).select(<EntityInventory>::as_select()).get_result::<EntityInventory>(conn).or_else(|e| {
+            tracing::error!("try to uodate a non existed inventory ({}): {}", id, e);
+            Err(ApiError::NoRecord)
+        })?;
+
+        if inventory.price.is_some() && inventory.quantity.is_some() {
+            if let Some(be_price) = BigDecimal::from_f64(inventory.price.expect("price should not be none")) {
+                entity_inventory.price = be_price;
+            }
+
+            entity_inventory.quantity = inventory.quantity.expect("quantity should not be none");
+        }
+        else if inventory.price.is_some() {
+            if let Some(be_price) = BigDecimal::from_f64(inventory.price.expect("price should not be none")) {
+                entity_inventory.price = be_price;
+            }
+        }
+        else if inventory.quantity.is_some() {
+            entity_inventory.quantity = inventory.quantity.expect("quantity should not be none");
+        }
+
+        update(inventories::table).set(&entity_inventory).execute(conn).or_else(|e| {
+            tracing::error!("update inventory entity failed: {}", e);
+            Err(ApiError::UpdateInventoryFailed)
+        })?;
+
+        Ok(())
     }
 }

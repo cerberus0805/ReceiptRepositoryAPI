@@ -1,10 +1,10 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
-        collections::service_collection::ServiceCollection, entities::entity_product::{EntityProduct, NewEntityProduct}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_product::ResponseProduct
+        collections::service_collection::ServiceCollection, entities::entity_product::{EntityProduct, NewEntityProduct, UpdateEntityProduct}, errors::api_error::ApiError, forms::patch_payload::PatchProductPayload, parameters::pagination::Pagination, responses::response_product::ResponseProduct
     }, 
     repository::DbRepository, 
     schema::products, 
@@ -78,7 +78,7 @@ impl<'a> ProductService<'a> {
         })?;
 
         select(exists(products::table.filter(products::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
-            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+            Err(ApiError::CurrencyIdNotExisted)  
         })
     }
 
@@ -107,7 +107,7 @@ impl<'a> ProductService<'a> {
         }
 
         select(exists(product_filter)).get_result::<bool>(conn).or_else(|_e| {
-            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+            Err(ApiError::CurrencyIdNotExisted)  
         })
     }
 
@@ -125,5 +125,84 @@ impl<'a> ProductService<'a> {
         })?;
 
         Ok(entity_product.id)
+    }
+
+    pub async fn patch_product(&self, id: i32, product: &PatchProductPayload) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let mut updated_product = UpdateEntityProduct {
+            id,
+            name: None,
+            alias: None,
+            brand: None,
+            specification_amount: None,
+            specification_unit: None,
+            specification_others: None
+        };
+
+        if product.name.is_some() {
+            let updated_name = product.name.as_ref().expect("name should not be none");
+            updated_product.name = Some(updated_name.to_string());
+        }
+
+        if product.alias.is_some() {
+            let updated_option_alias = product.alias.as_ref().expect("option alias should not be none");
+            if updated_option_alias.is_some() {
+                updated_product.alias = Some(updated_option_alias.to_owned());
+            }
+            else {
+                updated_product.alias = Some(None);
+            }
+        }
+
+        if product.brand.is_some() {
+            let updated_option_brand = product.brand.as_ref().expect("option brand should not be none");
+            if updated_option_brand.is_some() {
+                updated_product.brand = Some(updated_option_brand.to_owned());
+            }
+            else {
+                updated_product.brand = Some(None);
+            }
+        }
+
+        if product.specification_amount.is_some() {
+            let updated_option_specification_amount = product.specification_amount.as_ref().expect("option specification_amount should not be none");
+            if updated_option_specification_amount.is_some() {
+                updated_product.specification_amount = Some(updated_option_specification_amount.to_owned());
+            }
+            else {
+                updated_product.specification_amount = Some(None);
+            }
+        }
+
+        if product.specification_unit.is_some() {
+            let updated_option_specification_unit = product.specification_unit.as_ref().expect("option specification_unit should not be none");
+            if updated_option_specification_unit.is_some() {
+                updated_product.specification_unit = Some(updated_option_specification_unit.to_owned());
+            }
+            else {
+                updated_product.specification_unit = Some(None);
+            }
+        }
+
+        if product.specification_others.is_some() {
+            let updated_option_specification_others = product.specification_others.as_ref().expect("option specification_others should not be none");
+            if updated_option_specification_others.is_some() {
+                updated_product.specification_others = Some(updated_option_specification_others.to_owned());
+            }
+            else {
+                updated_product.specification_others = Some(None);
+            }
+        }
+
+        updated_product.save_changes::<EntityProduct>(conn).or_else(|e| {
+            tracing::error!("update product entity failed: {}", e);
+            Err(ApiError::UpdateProductFailed)
+        })?;
+
+        Ok(())
     }
 }

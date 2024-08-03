@@ -1,10 +1,10 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
 };
 
 use crate::{
     models::v1::{
-        collections::service_collection::ServiceCollection, entities::entity_store::{EntityStore, NewEntityStore}, errors::api_error::ApiError, parameters::pagination::Pagination, responses::response_store::ResponseStore
+        collections::service_collection::ServiceCollection, entities::entity_store::{EntityStore, NewEntityStore, UpdateEntityStore}, errors::api_error::ApiError, forms::patch_payload::PatchStorePayload, parameters::pagination::Pagination, responses::response_store::ResponseStore
     }, 
     repository::DbRepository, 
     schema::stores, 
@@ -78,7 +78,7 @@ impl<'a> StoreService<'a> {
         })?;
 
         select(exists(stores::table.filter(stores::id.eq(id)))).get_result::<bool>(conn).or_else(|_e| {
-            Err(ApiError::FormFieldCurrencyIdNotExisted)  
+            Err(ApiError::CurrencyIdNotExisted)  
         })
     }
 
@@ -92,18 +92,18 @@ impl<'a> StoreService<'a> {
         match branch {
             Some(store_branch) => {
                 select(exists(stores::table.filter(stores::name.eq(name)).filter(stores::branch.eq(store_branch)))).get_result::<bool>(conn).or_else(|_e| {
-                    Err(ApiError::FormFieldStoreNameDuplicated)
+                    Err(ApiError::StoreNameDuplicated)
                 })
             },
             None => {
                 select(exists(stores::table.filter(stores::name.eq(name)))).get_result::<bool>(conn).or_else(|_e| {
-                    Err(ApiError::FormFieldStoreNameDuplicated)
+                    Err(ApiError::StoreNameDuplicated)
                 })
             }
         }
     }
 
-    pub async fn new_store(&self, store: &NewEntityStore) ->Result<i32, ApiError> {
+    pub async fn new_store(&self, store: &NewEntityStore) -> Result<i32, ApiError> {
         let conn = &mut self.repository.pool.get().or_else(|e| {
             tracing::error!("database connection broken: {}", e);
             Err(ApiError::DatabaseConnectionBroken)
@@ -117,5 +117,62 @@ impl<'a> StoreService<'a> {
         })?;
 
         Ok(entity_store.id)
+    }
+
+    pub async fn patch_store(&self, id: i32, store: &PatchStorePayload) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let mut updated_store = UpdateEntityStore {
+            id,
+            name: None,
+            alias: None,
+            branch: None,
+            address: None
+        };
+
+        if store.name.is_some() {
+            let updated_name = store.name.as_ref().expect("name should not be none");
+            updated_store.name = Some(updated_name.to_string());
+        }
+
+        if store.alias.is_some() {
+            let updated_option_alias = store.alias.as_ref().expect("option alias should not be none");
+            if updated_option_alias.is_some() {
+                updated_store.alias = Some(updated_option_alias.to_owned());
+            }
+            else {
+                updated_store.alias = Some(None);
+            }
+        }
+
+        if store.branch.is_some() {
+            let updated_option_branch = store.branch.as_ref().expect("option branch should not be none");
+            if updated_option_branch.is_some() {
+                updated_store.branch = Some(updated_option_branch.to_owned());
+            }
+            else {
+                updated_store.branch = Some(None);
+            }
+        }
+
+        if store.address.is_some() {
+            let updated_option_address = store.address.as_ref().expect("option branch should not be none");
+            if updated_option_address.is_some() {
+                updated_store.address = Some(updated_option_address.to_owned());
+            }
+            else {
+                updated_store.address = Some(None);
+            }
+        }
+
+        updated_store.save_changes::<EntityStore>(conn).or_else(|e| {
+            tracing::error!("update store entity failed: {}", e);
+            Err(ApiError::UpdateStoreFailed)
+        })?;
+        
+        Ok(())
     }
 }

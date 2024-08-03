@@ -12,23 +12,23 @@ pub enum ApiError {
     #[error("Database disconnect")]
     DatabaseConnectionBroken,
     #[error("Both id and name are none")]
-    FormFieldCurrencyInvalid,
+    CurrencyInvalid,
     #[error("Currency id is not existed")]
-    FormFieldCurrencyIdNotExisted,
+    CurrencyIdNotExisted,
     #[error("Currency name is duplicated")]
-    FormFieldCurrencyNameDuplicated,
+    CurrencyNameDuplicated,
     #[error("Both id and name are none")]
-    FormFieldStoreInvalid,
+    StoreInvalid,
     #[error("Store id is not existed")]
-    FormFieldStoreIdNotExisted,
+    StoreIdNotExisted,
     #[error("Store name is duplicated")]
-    FormFieldStoreNameDuplicated,
+    StoreNameDuplicated,
     #[error("Both id and name are none")]
-    FormFieldProductInvalid,
+    ProductInvalid,
     #[error("Product id is not existed")]
-    FormFieldProductIdNotExisted,
+    ProductIdNotExisted,
     #[error("Product name is duplicated")]
-    FormFieldProductNameDuplicated,
+    ProductNameDuplicated,
     #[error("Insert a new currency is failed")]
     InsertCurrencyFailed,
     #[error("Insert a new store is failed")]
@@ -38,5 +38,15 @@ pub enum ApiError {
     #[error("Insert a new receipt is failed")]
     InsertReceiptFailed,
     #[error("Insert a new inventory is failed")]
-    InsertInventoryFailed
+    InsertInventoryFailed,
+    #[error("Update a new currency is failed")]
+    UpdateCurrencyFailed,
+    #[error("Update a new store is failed")]
+    UpdateStoreFailed,
+    #[error("Update a new product is failed")]
+    UpdateProductFailed,
+    #[error("Update a new receipt is failed")]
+    UpdateReceiptFailed,
+    #[error("Update a new inventory is failed")]
+    UpdateInventoryFailed
 }
