@@ -135,13 +135,14 @@ impl<'a> StoreService<'a> {
 
         if store.name.is_some() {
             let updated_name = store.name.as_ref().expect("name should not be none");
-            updated_store.name = Some(updated_name.to_string());
+            updated_store.name = Some(updated_name);
         }
 
         if store.alias.is_some() {
             let updated_option_alias = store.alias.as_ref().expect("option alias should not be none");
             if updated_option_alias.is_some() {
-                updated_store.alias = Some(updated_option_alias.to_owned());
+                let updated_alias = updated_option_alias.as_ref().expect("alias should not be none");
+                updated_store.alias = Some(Some(&updated_alias));
             }
             else {
                 updated_store.alias = Some(None);
@@ -151,7 +152,8 @@ impl<'a> StoreService<'a> {
         if store.branch.is_some() {
             let updated_option_branch = store.branch.as_ref().expect("option branch should not be none");
             if updated_option_branch.is_some() {
-                updated_store.branch = Some(updated_option_branch.to_owned());
+                let updated_branch = updated_option_branch.as_ref().expect("branch should not be none");
+                updated_store.branch = Some(Some(&updated_branch));
             }
             else {
                 updated_store.branch = Some(None);
@@ -159,9 +161,10 @@ impl<'a> StoreService<'a> {
         }
 
         if store.address.is_some() {
-            let updated_option_address = store.address.as_ref().expect("option branch should not be none");
+            let updated_option_address = store.address.as_ref().expect("option address should not be none");
             if updated_option_address.is_some() {
-                updated_store.address = Some(updated_option_address.to_owned());
+                let updated_address = updated_option_address.as_ref().expect("address should not be none");
+                updated_store.address = Some(Some(&updated_address));
             }
             else {
                 updated_store.address = Some(None);

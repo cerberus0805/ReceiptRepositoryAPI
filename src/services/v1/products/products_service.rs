@@ -145,13 +145,14 @@ impl<'a> ProductService<'a> {
 
         if product.name.is_some() {
             let updated_name = product.name.as_ref().expect("name should not be none");
-            updated_product.name = Some(updated_name.to_string());
+            updated_product.name = Some(updated_name);
         }
 
         if product.alias.is_some() {
             let updated_option_alias = product.alias.as_ref().expect("option alias should not be none");
             if updated_option_alias.is_some() {
-                updated_product.alias = Some(updated_option_alias.to_owned());
+                let updated_alias = updated_option_alias.as_ref().expect("alias should not be none");
+                updated_product.alias = Some(Some(updated_alias));
             }
             else {
                 updated_product.alias = Some(None);
@@ -161,7 +162,8 @@ impl<'a> ProductService<'a> {
         if product.brand.is_some() {
             let updated_option_brand = product.brand.as_ref().expect("option brand should not be none");
             if updated_option_brand.is_some() {
-                updated_product.brand = Some(updated_option_brand.to_owned());
+                let updated_brand = updated_option_brand.as_ref().expect("brand should not be none");
+                updated_product.brand = Some(Some(updated_brand));
             }
             else {
                 updated_product.brand = Some(None);
@@ -171,7 +173,8 @@ impl<'a> ProductService<'a> {
         if product.specification_amount.is_some() {
             let updated_option_specification_amount = product.specification_amount.as_ref().expect("option specification_amount should not be none");
             if updated_option_specification_amount.is_some() {
-                updated_product.specification_amount = Some(updated_option_specification_amount.to_owned());
+                let updated_specification_amount = updated_option_specification_amount.as_ref().expect("specification_amount should not be none");
+                updated_product.specification_amount = Some(Some(updated_specification_amount));
             }
             else {
                 updated_product.specification_amount = Some(None);
@@ -181,7 +184,8 @@ impl<'a> ProductService<'a> {
         if product.specification_unit.is_some() {
             let updated_option_specification_unit = product.specification_unit.as_ref().expect("option specification_unit should not be none");
             if updated_option_specification_unit.is_some() {
-                updated_product.specification_unit = Some(updated_option_specification_unit.to_owned());
+                let updated_specification_unit = updated_option_specification_unit.as_ref().expect("specification_unit should not be none");
+                updated_product.specification_unit = Some(Some(updated_specification_unit));
             }
             else {
                 updated_product.specification_unit = Some(None);
@@ -191,7 +195,8 @@ impl<'a> ProductService<'a> {
         if product.specification_others.is_some() {
             let updated_option_specification_others = product.specification_others.as_ref().expect("option specification_others should not be none");
             if updated_option_specification_others.is_some() {
-                updated_product.specification_others = Some(updated_option_specification_others.to_owned());
+                let updated_specification_others = updated_option_specification_others.as_ref().expect("specification_others should not be none");
+                updated_product.specification_others = Some(Some(updated_specification_others));
             }
             else {
                 updated_product.specification_others = Some(None);

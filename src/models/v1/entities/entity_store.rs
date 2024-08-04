@@ -24,10 +24,10 @@ pub struct NewEntityStore {
 #[derive(AsChangeset, Identifiable, Debug)]
 #[diesel(table_name = crate::schema::stores)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct UpdateEntityStore {
+pub struct UpdateEntityStore<'a> {
     pub id: i32,
-    pub name: Option<String>,
-    pub alias: Option<Option<String>>,
-    pub branch: Option<Option<String>>,
-    pub address: Option<Option<String>>
+    pub name: Option<&'a String>,
+    pub alias: Option<Option<&'a String>>,
+    pub branch: Option<Option<&'a String>>,
+    pub address: Option<Option<&'a String>>
 }

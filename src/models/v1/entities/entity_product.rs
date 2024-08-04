@@ -28,12 +28,12 @@ pub struct NewEntityProduct {
 #[derive(AsChangeset, Identifiable, Debug)]
 #[diesel(table_name = crate::schema::products)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct UpdateEntityProduct {
+pub struct UpdateEntityProduct<'a> {
     pub id: i32,
-    pub name: Option<String>,
-    pub alias: Option<Option<String>>,
-    pub brand: Option<Option<String>>,
-    pub specification_amount: Option<Option<i32>>,
-    pub specification_unit: Option<Option<String>>,
-    pub specification_others: Option<Option<String>>
+    pub name: Option<&'a String>,
+    pub alias: Option<Option<&'a String>>,
+    pub brand: Option<Option<&'a String>>,
+    pub specification_amount: Option<Option<&'a i32>>,
+    pub specification_unit: Option<Option<&'a String>>,
+    pub specification_others: Option<Option<&'a String>>
 }
