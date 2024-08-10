@@ -19,13 +19,13 @@ pub struct ResponseReceipt {
 }
 
 #[derive(Serialize)]
-pub struct ReponseReceiptPayload {
+pub struct ResponseReceiptPayload {
     pub data: Option<ResponseReceipt>,
     pub error: Option<ApiError>
 }
 
 #[derive(Serialize)]
-pub struct ReponseReceiptsPayload {
+pub struct ResponseReceiptsPayload {
     pub data: Option<Vec<ResponseReceipt>>,
     pub total: Option<i64>,
     pub error: Option<ApiError>

@@ -336,4 +336,8 @@ impl<'a> ReceiptService<'a> {
 
         Ok(())
     }
+
+    pub async fn delete_receipt(&self, _id: i32) -> Result<(), ApiError> {
+        Ok(())
+    }
 }

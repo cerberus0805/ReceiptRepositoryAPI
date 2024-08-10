@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::{
-    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, response::Response, routing::{get, patch, post}, Router
+    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, response::Response, routing::{delete, get, patch, post}, Router
 };
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{info_span, Span};
@@ -22,6 +22,7 @@ impl AppRouter {
             .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
             .route("/api/v1/receipts", post(ReceiptsHandlers::post_receipt))
             .route("/api/v1/receipts/:id", patch(ReceiptsHandlers::patch_receipt))
+            .route("/api/v1/receipts/:id", delete(ReceiptsHandlers::delete_receipt))
             .route("/api/v1/stores/:id", get(StoresHandlers::get_store))
             .route("/api/v1/stores", get(StoresHandlers::get_stores))
             .route("/api/v1/stores/:id", patch(StoresHandlers::patch_store))
