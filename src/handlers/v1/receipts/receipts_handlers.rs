@@ -15,8 +15,8 @@ use crate::{
         forms::{create_payload::CreateReceiptPayload, patch_payload::PatchReceiptPayload}, 
         parameters::pagination::Pagination, 
         responses::response_receipt::{
-            ReponseReceiptPayload, 
-            ReponseReceiptsPayload, 
+            ResponseReceiptPayload, 
+            ResponseReceiptsPayload, 
             ResponseCreateReceiptPayload
         }
     }, 
@@ -37,7 +37,7 @@ impl ReceiptsHandlers {
             let response_receipt = service.get_receipt(r_id.0 as i32).await;
             match response_receipt {
                 Ok(response) => {
-                    let payload = ReponseReceiptPayload {
+                    let payload = ResponseReceiptPayload {
                         data: Some(response),
                         error: None
                     };
@@ -48,7 +48,7 @@ impl ReceiptsHandlers {
                     let api_error_converter_service = ApiErrorConventerService::new();
                     let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
 
-                    let payload = ReponseReceiptPayload {
+                    let payload = ResponseReceiptPayload {
                         data: None,
                         error: Some(e)
                     };
@@ -57,7 +57,7 @@ impl ReceiptsHandlers {
             }
         }
         else {
-            let payload = ReponseReceiptPayload {
+            let payload = ResponseReceiptPayload {
                 data: None,
                 error: Some(ApiError::InvalidParameter)
             };
@@ -70,7 +70,7 @@ impl ReceiptsHandlers {
         let receipt_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
         match receipt_collection {
             Ok(responses) => {
-                let payload = ReponseReceiptsPayload {
+                let payload = ResponseReceiptsPayload {
                     data: Some(responses.partial_collection),
                     total: Some(responses.total_count),
                     error: None
@@ -80,7 +80,7 @@ impl ReceiptsHandlers {
             Err(e) => {
                 let api_error_converter_service = ApiErrorConventerService::new();
                 let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
-                let payload = ReponseReceiptsPayload {
+                let payload = ResponseReceiptsPayload {
                     data: None,
                     total: None,
                     error: Some(e)
@@ -129,7 +129,7 @@ impl ReceiptsHandlers {
             let service = ReceiptService::new(&repository);
             match service.patch_receipt(r_id as i32, &r_payload).await {
                 Ok(_) => {
-                    let payload = ReponseReceiptPayload {
+                    let payload = ResponseReceiptPayload {
                         data: None,
                         error: None
                     };
@@ -139,7 +139,7 @@ impl ReceiptsHandlers {
                 Err(e) => {
                     let api_error_converter_service = ApiErrorConventerService::new();
                     let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
-                    let payload = ReponseReceiptPayload {
+                    let payload = ResponseReceiptPayload {
                         data: None,
                         error: Some(e)
                     };
@@ -148,7 +148,40 @@ impl ReceiptsHandlers {
             }
         }
         else {
-            let payload = ReponseReceiptPayload {
+            let payload = ResponseReceiptPayload {
+                data: None,
+                error: Some(ApiError::InvalidParameter)
+            };
+
+            (StatusCode::BAD_REQUEST, Json(payload))
+        }
+    }
+
+    pub async fn delete_receipt(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
+        if let Ok(r_id) = id {
+            let service = ReceiptService::new(&repository);
+            match service.delete_receipt(r_id.0 as i32).await {
+                Ok(_) => {
+                    let payload = ResponseReceiptPayload {
+                        data: None,
+                        error: None
+                    };
+        
+                    (StatusCode::NO_CONTENT, Json(payload))
+                },
+                Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
+                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
+                    let payload = ResponseReceiptPayload {
+                        data: None,
+                        error: Some(e)
+                    };
+                    (http_return_code, Json(payload))
+                }
+            }
+        }
+        else {
+            let payload = ResponseReceiptPayload {
                 data: None,
                 error: Some(ApiError::InvalidParameter)
             };

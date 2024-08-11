@@ -35,6 +35,10 @@ impl ApiErrorConventerService {
             &ApiError::UpdateProductFailed => StatusCode::UNPROCESSABLE_ENTITY,
             &ApiError::UpdateReceiptFailed => StatusCode::UNPROCESSABLE_ENTITY,
             &ApiError::UpdateInventoryFailed => StatusCode::UNPROCESSABLE_ENTITY,
+            &ApiError::DeleteReceiptIdNotExisted => StatusCode::GONE,
+            &ApiError::DeleteReceiptAssociatedEntryFailed => StatusCode::NOT_ACCEPTABLE,
+            &ApiError::DeleteReceiptEntryFailed => StatusCode::UNPROCESSABLE_ENTITY,
+            &ApiError::DeleteReceiptRelatedEntryFailed => StatusCode::GONE
         }
     }
 }

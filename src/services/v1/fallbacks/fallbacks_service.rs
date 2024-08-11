@@ -18,7 +18,7 @@ impl FallbacksService {
         }
 
         if pagination.limit < 1 {
-            tracing::debug!("fallback to default limit for negative or zeor offset");
+            tracing::debug!("fallback to default limit for negative or zero offset");
             per_page = DEFAULT_LIMIT;
         }
 

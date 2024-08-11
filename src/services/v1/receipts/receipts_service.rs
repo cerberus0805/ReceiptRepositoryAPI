@@ -1,6 +1,6 @@
 use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::{
-    dsl::count, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
+    delete, dsl::{count, exists, not}, insert_into, select, update, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
 
 use crate::{
@@ -331,6 +331,93 @@ impl<'a> ReceiptService<'a> {
             update(receipts::table.filter(receipts::id.eq(id))).set(receipts::is_inventory_taxed.eq(receipt.is_inventory_taxed.expect("is_inventory_taxed should not be none"))).execute(conn).or_else(|e| {
                 tracing::error!("update receipt entity failed: {}", e);
                 Err(ApiError::UpdateReceiptFailed)
+            })?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_receipt(&self, id: i32) -> Result<(), ApiError> {
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let receipt_existed = select(exists(receipts::table.filter(receipts::id.eq(id)))).get_result::<bool>(conn).or_else(|e| {
+            tracing::error!("unable to check receipt existence: {}", e);
+            Err(ApiError::DeleteReceiptIdNotExisted)
+        }).expect("Unwrap existed receipt should not be failed");
+
+        if !receipt_existed {
+            return Err(ApiError::DeleteReceiptIdNotExisted)
+        }
+
+        // query associated inventory_id, product_id pairs
+        let inventory_product_pairs: Vec<(i32, i32)> = inventories::table.filter(inventories::receipt_id.eq(id)).select((inventories::id, inventories::product_id)).get_results::<(i32, i32)>(conn).or_else(|e| {
+            tracing::error!("Unable to retrieve associated inventories: {}", e);
+            Err(ApiError::DeleteReceiptAssociatedEntryFailed)
+        }).expect("Unwrap inventory/product pairs should not be failed.");
+
+        let (inventory_ids, product_ids): (Vec<i32>, Vec<i32>) = inventory_product_pairs.into_iter().unzip();
+
+        // delete associated inventories
+        delete(inventories::table.filter(inventories::id.eq_any(inventory_ids))).execute(conn).or_else(|e| {
+            tracing::error!("Unable to delete associated inventories: {}", e);
+            Err(ApiError::DeleteReceiptAssociatedEntryFailed)
+        })?;
+
+        // query the ids of product which is needed to be deleted
+        let mut product_to_be_delete_ids = vec![];
+        for product_id in product_ids {
+            let is_not_referred_product = select(not(exists(inventories::table.filter(inventories::product_id.eq(product_id))))).get_result::<bool>(conn).or_else(|e| {
+                tracing::error!("Unable to retrieve associated product_id in inventories: {}", e);
+                Err(ApiError::DeleteReceiptAssociatedEntryFailed)
+            }).expect("Unwrap non existed product should not be failed");
+            if is_not_referred_product {
+                product_to_be_delete_ids.push(product_id);
+            }
+        }
+
+        // delete associated products if there is no inventory refers to this product
+        delete(products::table.filter(products::id.eq_any(product_to_be_delete_ids))).execute(conn).or_else(|e| {
+            tracing::error!("Unable to delete associated product: {}", e);
+            Err(ApiError::DeleteReceiptAssociatedEntryFailed)
+        })?;
+
+        let receipt_to_be_delete: EntityReceipt = receipts::table.filter(receipts::id.eq(id)).get_result::<EntityReceipt>(conn).or_else(|e| {
+            tracing::error!("Unable to retrieve the receipt to be deleted: {}", e);
+            Err(ApiError::DeleteReceiptAssociatedEntryFailed)
+        }).expect("Unwrap receipt should not be failed.");
+
+        // delete receipt
+        delete(receipts::table).filter(receipts::id.eq(id)).execute(conn).or_else(|e| {
+            tracing::error!("Unable to delete receipt: {}", e);
+            Err(ApiError::DeleteReceiptEntryFailed)
+        })?;
+
+        let is_not_referred_store = select(not(exists(receipts::table.filter(receipts::store_id.eq(&receipt_to_be_delete.store_id))))).get_result::<bool>(conn).or_else(|e| {
+            tracing::error!("Unable to retrieve related store: {}", e);
+            Err(ApiError::DeleteReceiptRelatedEntryFailed)
+        }).expect("Unwrap non existed store should not be failed");
+
+        // delete related store if there is no receipt refers to this store
+        if is_not_referred_store {
+            delete(stores::table.filter(stores::id.eq(&receipt_to_be_delete.store_id))).execute(conn).or_else(|e| {
+                tracing::error!("Unable to delete related store: {}", e);
+                Err(ApiError::DeleteReceiptEntryFailed)
+            })?;
+        }
+
+        let is_not_referred_currency = select(not(exists(receipts::table.filter(receipts::currency_id.eq(&receipt_to_be_delete.currency_id))))).get_result::<bool>(conn).or_else(|e| {
+            tracing::error!("Unable to retrieve related currency: {}", e);
+            Err(ApiError::DeleteReceiptRelatedEntryFailed)
+        }).expect("Unwrap non existed currency should not be failed");
+
+        // delete related currency if there is no receipt refers to this currency
+        if is_not_referred_currency {
+            delete(currencies::table.filter(currencies::id.eq(&receipt_to_be_delete.currency_id))).execute(conn).or_else(|e| {
+                tracing::error!("Unable to delete related currency: {}", e);
+                Err(ApiError::DeleteReceiptEntryFailed)
             })?;
         }
 

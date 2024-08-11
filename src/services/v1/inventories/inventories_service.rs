@@ -114,7 +114,7 @@ impl<'a> InventroyService<'a> {
             entity_inventory.quantity = inventory.quantity.expect("quantity should not be none");
         }
 
-        update(inventories::table).set(&entity_inventory).execute(conn).or_else(|e| {
+        update(inventories::table).filter(inventories::id.eq(id)).set(&entity_inventory).execute(conn).or_else(|e| {
             tracing::error!("update inventory entity failed: {}", e);
             Err(ApiError::UpdateInventoryFailed)
         })?;
