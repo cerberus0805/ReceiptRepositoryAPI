@@ -167,7 +167,7 @@ impl ReceiptsHandlers {
                         error: None
                     };
         
-                    (StatusCode::OK, Json(payload))
+                    (StatusCode::NO_CONTENT, Json(payload))
                 },
                 Err(e) => {
                     let api_error_converter_service = ApiErrorConventerService::new();

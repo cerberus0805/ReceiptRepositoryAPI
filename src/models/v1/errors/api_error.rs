@@ -48,5 +48,13 @@ pub enum ApiError {
     #[error("Update a new receipt is failed")]
     UpdateReceiptFailed,
     #[error("Update a new inventory is failed")]
-    UpdateInventoryFailed
+    UpdateInventoryFailed,
+    #[error("Delete a receipt whose id is not existed")]
+    DeleteReceiptIdNotExisted,
+    #[error("Delete data which is associated to a receipt failed")]
+    DeleteReceiptAssociatedEntryFailed,
+    #[error("Delete a receipt failed")]
+    DeleteReceiptEntryFailed,
+    #[error("Delete data which is related to a receipt failed")]
+    DeleteReceiptRelatedEntryFailed
 }
