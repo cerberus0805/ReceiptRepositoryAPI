@@ -36,7 +36,7 @@ impl<'a> CurrencyService<'a> {
         Ok(currency_response)
     }
 
-    pub async fn get_currencies(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseCurrency>, ApiError> {
+    pub async fn get_currencies(&self, pagination: &Pagination) -> Result<ServiceCollection<ResponseCurrency>, ApiError> {
         let converter: ConverterService = ConverterService::new();
         let fallbacks_service = FallbacksService::new();
         let conn = &mut self.repository.pool.get().or_else(|e| {

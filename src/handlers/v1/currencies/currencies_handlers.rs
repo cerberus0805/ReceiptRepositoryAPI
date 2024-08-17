@@ -42,7 +42,7 @@ impl CurrenciesHandlers {
 
     pub async fn get_currencies(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = CurrencyService::new(&repository);
-        let currencies_collection = service.get_currencies(pagination.unwrap_or_default().0).await;
+        let currencies_collection = service.get_currencies(&pagination.unwrap_or_default().0).await;
         match currencies_collection {
             Ok(responses) => {
                 let payload = ResponseCurrenciesPayload {

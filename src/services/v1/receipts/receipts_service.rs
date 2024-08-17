@@ -68,7 +68,7 @@ impl<'a> ReceiptService<'a> {
         Ok(receipt_response)
     }
 
-    pub async fn get_receipts(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseReceipt>, ApiError> {
+    pub async fn get_receipts(&self, pagination: &Pagination) -> Result<ServiceCollection<ResponseReceipt>, ApiError> {
         let converter = ConverterService::new();
         let fallbacks_service = FallbacksService::new();
         let conn = &mut self.repository.pool.get().or_else(

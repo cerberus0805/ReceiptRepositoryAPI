@@ -43,7 +43,7 @@ impl<'a> ProductService<'a> {
         Ok(product_response)
     }
 
-    pub async fn get_products(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseProduct>, ApiError> {
+    pub async fn get_products(&self, pagination: &Pagination) -> Result<ServiceCollection<ResponseProduct>, ApiError> {
         let converter: ConverterService = ConverterService::new();
         let fallbacks_service = FallbacksService::new();
         let conn = &mut self.repository.pool.get().or_else(|e| {

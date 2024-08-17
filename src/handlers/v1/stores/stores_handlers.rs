@@ -43,7 +43,7 @@ impl StoresHandlers {
 
     pub async fn get_stores(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = StoreService::new(&repository);
-        let store_collection = service.get_stores(pagination.unwrap_or_default().0).await;
+        let store_collection = service.get_stores(&pagination.unwrap_or_default().0).await;
         match store_collection {
             Ok(responses) => {
                 let payload = ResponseStoresPayload {

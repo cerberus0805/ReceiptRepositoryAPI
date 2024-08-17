@@ -42,7 +42,7 @@ impl<'a> InventroyService<'a> {
         Ok(inventory_response)
     }
 
-    pub async fn get_inventories(&self, pagination: Pagination) -> Result<ServiceCollection<ResponseInventory>, ApiError> {
+    pub async fn get_inventories(&self, pagination: &Pagination) -> Result<ServiceCollection<ResponseInventory>, ApiError> {
         let converter = ConverterService::new();
         let fallbacks_service = FallbacksService::new();
         let conn = &mut self.repository.pool.get().or_else(

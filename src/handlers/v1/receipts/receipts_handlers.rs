@@ -67,7 +67,7 @@ impl ReceiptsHandlers {
 
     pub async fn get_receipts(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ReceiptService::new(&repository);
-        let receipt_collection = service.get_receipts(pagination.unwrap_or_default().0).await;
+        let receipt_collection = service.get_receipts(&pagination.unwrap_or_default().0).await;
         match receipt_collection {
             Ok(responses) => {
                 let payload = ResponseReceiptsPayload {

@@ -43,7 +43,7 @@ impl ProductsHandlers {
 
     pub async fn get_products(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = ProductService::new(&repository);
-        let product_collection = service.get_products(pagination.unwrap_or_default().0).await;
+        let product_collection = service.get_products(&pagination.unwrap_or_default().0).await;
         match product_collection {
             Ok(responses) => {
                 let payload = ResponseProductsPayload {

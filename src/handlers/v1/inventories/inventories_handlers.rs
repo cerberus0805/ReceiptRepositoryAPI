@@ -44,7 +44,7 @@ impl InventoriesHandlers {
 
     pub async fn get_inventories(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
         let service = InventroyService::new(&repository);
-        let inventory_collection = service.get_inventories(pagination.unwrap_or_default().0).await;
+        let inventory_collection = service.get_inventories(&pagination.unwrap_or_default().0).await;
         match inventory_collection {
             Ok(responses) => {
                 let payload = ResponseInventoriesPayload {
