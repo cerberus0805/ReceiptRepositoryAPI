@@ -6,3 +6,4 @@ pub mod currencies;
 pub mod products;
 pub mod inventories;
 pub mod validators;
+pub mod commands;
