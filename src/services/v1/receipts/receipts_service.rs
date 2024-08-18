@@ -216,7 +216,7 @@ impl<'a> ReceiptService<'a> {
             let _inventory_id = inventory_service.new_inventory(&new_inventory).await?;
         }
         
-        // let mut insert_clauses = vec![];
+        tracing::debug!("Create receipt at date {}, id: {} successfully", form_receipt.transaction_date, receipt_ref_id);
         Ok(ResponseCreateReceipt {
             id: receipt_ref_id
         })
@@ -421,6 +421,7 @@ impl<'a> ReceiptService<'a> {
             })?;
         }
 
+        tracing::debug!("Delete receipt {} successfully", id);
         Ok(())
     }
 }
