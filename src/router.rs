@@ -8,15 +8,15 @@ use tracing::{info_span, Span};
 
 use crate::{
     handlers::v1::{currencies::currencies_handlers::CurrenciesHandlers, inventories::{customized_inventories_handlers::CustomizedInventoriesHandlers, inventories_handlers::InventoriesHandlers}, products::products_handlers::ProductsHandlers, receipts::receipts_handlers::ReceiptsHandlers, stores::stores_handlers::StoresHandlers}, 
-    repository::DbRepository
+    share_state::HandlerState
 };
 
 pub struct AppRouter {
-    pub router: Router,
+    pub router: Router
 }
 
-impl AppRouter {
-    pub fn new(repository: DbRepository) -> Self {
+impl<'a> AppRouter {
+    pub fn new(handler_state: HandlerState) -> Self {
         let router = Router::new()
             .route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt))
             .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
@@ -41,7 +41,7 @@ impl AppRouter {
             .route("/api/v1/receipts/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_receipt_id))
             .route("/api/v1/stores/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_store_id))
             .route("/api/v1/currencies/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_currency_id))
-            .with_state(repository)
+            .with_state(handler_state)
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(|request: &Request<_>| {

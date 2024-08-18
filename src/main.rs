@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use receipt_repository_api::services::v1::commands::command_service::CommandService;
+use receipt_repository_api::share_state::HandlerState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use receipt_repository_api::configuration::AppConfig;
@@ -29,9 +31,13 @@ async fn main() {
             )
         )
         .init();
+    
     let repository = DbRepository::new(config.get_db_url());
-    let router = AppRouter::new(repository);
+    let sender = CommandService::run(repository.clone());
+    let handler_state = HandlerState::new(repository, sender);
+    let router = AppRouter::new(handler_state);
     let listener = AppListener::new(config.get_address()).await.expect("TCP listener should be created successfully.");
     let app = Application::new(router, listener);
+
     app.run().await;
 }

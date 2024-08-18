@@ -1,13 +1,13 @@
 use axum::{extract::{rejection::{JsonRejection, PathRejection}, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
-use crate::{models::v1::{errors::api_error::ApiError, forms::patch_payload::PatchCurrencyPayload, parameters::pagination::Pagination, responses::response_currency::{ResponseCurrenciesPayload, ResponseCurrencyPayload}}, repository::DbRepository, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, currencies::currencies_service::CurrencyService}};
+use crate::{models::v1::{errors::api_error::ApiError, forms::patch_payload::PatchCurrencyPayload, parameters::pagination::Pagination, responses::response_currency::{ResponseCurrenciesPayload, ResponseCurrencyPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, currencies::currencies_service::CurrencyService}, share_state::HandlerState};
 
 pub struct  CurrenciesHandlers {
 }
 
 impl CurrenciesHandlers {
-    pub async fn get_currency(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = CurrencyService::new(&repository);
+    pub async fn get_currency(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
+        let service = CurrencyService::new(&handler_state.repository);
         if let Ok(c_id) = id {
             let response_currency = service.get_currency(c_id.0 as i32).await;
             match response_currency {
@@ -40,8 +40,8 @@ impl CurrenciesHandlers {
         }
     }
 
-    pub async fn get_currencies(State(repository): State<DbRepository>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = CurrencyService::new(&repository);
+    pub async fn get_currencies(State(handler_state): State<HandlerState>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
+        let service = CurrencyService::new(&handler_state.repository);
         let currencies_collection = service.get_currencies(&pagination.unwrap_or_default().0).await;
         match currencies_collection {
             Ok(responses) => {
@@ -65,11 +65,11 @@ impl CurrenciesHandlers {
         }
     }
 
-    pub async fn patch_currency(State(repository): State<DbRepository>, id: Result<Path<u32>, PathRejection>,  payload: Result<Json<PatchCurrencyPayload>, JsonRejection>) -> impl IntoResponse {
+    pub async fn patch_currency(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>,  payload: Result<Json<PatchCurrencyPayload>, JsonRejection>) -> impl IntoResponse {
         if id.is_ok() && payload.is_ok() {
             let c_id = id.expect("id should be ok after we have checked").0;
             let c_payload = payload.expect("payload should be ok after we have checked").0;
-            let service = CurrencyService::new(&repository);
+            let service = CurrencyService::new(&handler_state.repository);
             match service.patch_currency(c_id as i32, &c_payload).await {
                 Ok(_) => {
                     let payload = ResponseCurrencyPayload {

@@ -6,7 +6,7 @@ pub trait FormRelationshipModelIdOrName {
     fn get_name_field(&self) -> Option<String>;
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateCurrencyInReceiptPayload {
     pub id: Option<i32>,
     pub name: Option<String>
@@ -22,7 +22,7 @@ impl FormRelationshipModelIdOrName for CreateCurrencyInReceiptPayload {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateStoreInReceiptPayload {
     pub id: Option<i32>,
     pub name: Option<String>,
@@ -41,7 +41,7 @@ impl FormRelationshipModelIdOrName for CreateStoreInReceiptPayload {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateProductInReceiptPayload {
     pub id: Option<i32>,
     pub name: Option<String>,
@@ -62,14 +62,14 @@ impl FormRelationshipModelIdOrName for CreateProductInReceiptPayload {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateInventoryInReceiptPayload {
     pub price: f64,
     pub quantity: i32,
     pub product: CreateProductInReceiptPayload
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateReceiptPayload {
     pub transaction_date: NaiveDateTime,
     pub is_inventory_taxed: bool,
