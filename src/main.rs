@@ -33,7 +33,7 @@ async fn main() {
         .init();
     
     let repository = DbRepository::new(config.get_db_url());
-    let sender = CommandService::run(repository.clone());
+    let sender = CommandService::run(repository.clone(), config.get_writer_channel_buffer_size());
     let handler_state = HandlerState::new(repository, sender);
     let router = AppRouter::new(handler_state);
     let listener = AppListener::new(config.get_address()).await.expect("TCP listener should be created successfully.");

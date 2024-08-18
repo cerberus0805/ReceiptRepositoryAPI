@@ -11,7 +11,14 @@ use axum::{
 
 use crate::{
     models::v1::{
-        commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::{create_payload::CreateReceiptPayload, patch_payload::PatchReceiptPayload}, parameters::pagination::Pagination, responses::response_receipt::{
+        commands::writer_command::WriterCommand, 
+        errors::api_error::ApiError, 
+        forms::{
+            create_payload::CreateReceiptPayload, 
+            patch_payload::PatchReceiptPayload
+        }, 
+        parameters::pagination::Pagination, 
+        responses::response_receipt::{
             ResponseReceiptPayload, 
             ResponseReceiptsPayload
         }
