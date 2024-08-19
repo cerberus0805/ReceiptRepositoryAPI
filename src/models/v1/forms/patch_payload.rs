@@ -1,12 +1,12 @@
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct PatchCurrencyPayload {
     pub name: String
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct PatchStorePayload {
     pub name: Option<String>,
     #[serde(
@@ -26,7 +26,7 @@ pub struct PatchStorePayload {
     pub address: Option<Option<String>>
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct PatchProductPayload {
     pub name: Option<String>,
     #[serde(
@@ -56,13 +56,13 @@ pub struct PatchProductPayload {
     pub brand: Option<Option<String>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct PatchInventoryPayload {
     pub price: Option<f64>,
     pub quantity: Option<i32>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct PatchReceiptPayload {
     pub transaction_date: Option<NaiveDateTime>,
     pub is_inventory_taxed: Option<bool>,

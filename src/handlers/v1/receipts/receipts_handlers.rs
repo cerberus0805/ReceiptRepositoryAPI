@@ -94,7 +94,7 @@ impl ReceiptsHandlers {
 
     pub async fn post_receipt(State(handler_state): State<HandlerState>,  payload: Result<Json<CreateReceiptPayload>, JsonRejection>) -> impl IntoResponse {
         if let Ok(r_payload) = payload { 
-            let create_command = WriterCommand::CreateReceipt(r_payload.0.clone());
+            let create_command = WriterCommand::CreateReceipt(r_payload.0);
             let _ = handler_state.sender.send(create_command).await;
             let response = ResponseReceiptPayload {
                 data: None,
@@ -115,26 +115,13 @@ impl ReceiptsHandlers {
         if id.is_ok() && payload.is_ok() {
             let r_id = id.expect("id should be ok after we have checked").0;
             let r_payload = payload.expect("payload should be ok after we have checked").0;
-            let service = ReceiptService::new(&handler_state.repository);
-            match service.patch_receipt(r_id as i32, &r_payload).await {
-                Ok(_) => {
-                    let payload = ResponseReceiptPayload {
-                        data: None,
-                        error: None
-                    };
-        
-                    (StatusCode::OK, Json(payload))
-                },
-                Err(e) => {
-                    let api_error_converter_service = ApiErrorConventerService::new();
-                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
-                    let payload = ResponseReceiptPayload {
-                        data: None,
-                        error: Some(e)
-                    };
-                    (http_return_code, Json(payload))
-                }
-            }
+            let patch_command = WriterCommand::PatchReceipt(r_id as i32, r_payload);
+            let _ = handler_state.sender.send(patch_command).await;
+            let response = ResponseReceiptPayload {
+                data: None,
+                error: None
+            };
+            (StatusCode::ACCEPTED, Json(response))
         }
         else {
             let payload = ResponseReceiptPayload {

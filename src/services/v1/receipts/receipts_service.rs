@@ -334,6 +334,7 @@ impl<'a> ReceiptService<'a> {
             })?;
         }
 
+        tracing::debug!("patch receipt {} successfully", id);
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use axum::{extract::{rejection::{JsonRejection, PathRejection}, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
-use crate::{models::v1::{errors::api_error::ApiError, forms::patch_payload::PatchStorePayload, parameters::pagination::Pagination, responses::response_store::{ResponseStorePayload, ResponseStoresPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, stores::stores_service::StoreService}, share_state::HandlerState};
+use crate::{models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchStorePayload, parameters::pagination::Pagination, responses::response_store::{ResponseStorePayload, ResponseStoresPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, stores::stores_service::StoreService}, share_state::HandlerState};
 
 
 pub struct StoresHandlers {   
@@ -70,26 +70,13 @@ impl StoresHandlers {
         if id.is_ok() && payload.is_ok() {
             let s_id = id.expect("id should be ok after we have checked").0;
             let s_payload = payload.expect("payload should be ok after we have checked").0;
-            let service = StoreService::new(&handler_state.repository);
-            match service.patch_store(s_id as i32, &s_payload).await {
-                Ok(_) => {
-                    let payload = ResponseStorePayload {
-                        data: None,
-                        error: None
-                    };
-        
-                    (StatusCode::OK, Json(payload))
-                },
-                Err(e) => {
-                    let api_error_converter_service = ApiErrorConventerService::new();
-                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
-                    let payload = ResponseStorePayload {
-                        data: None,
-                        error: Some(e)
-                    };
-                    (http_return_code, Json(payload))
-                }
-            }
+            let patch_command = WriterCommand::PatchStore(s_id as i32, s_payload);
+            let _ = handler_state.sender.send(patch_command).await;
+            let response = ResponseStorePayload {
+                data: None,
+                error: None
+            };
+            (StatusCode::ACCEPTED, Json(response))
         }
         else {
             let payload = ResponseStorePayload {

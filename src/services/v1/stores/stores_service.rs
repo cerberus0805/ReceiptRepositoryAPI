@@ -176,6 +176,7 @@ impl<'a> StoreService<'a> {
             Err(ApiError::UpdateStoreFailed)
         })?;
         
+        tracing::debug!("patch store {} successfully", id);
         Ok(())
     }
 }

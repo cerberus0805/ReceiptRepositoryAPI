@@ -119,6 +119,7 @@ impl<'a> InventroyService<'a> {
             Err(ApiError::UpdateInventoryFailed)
         })?;
 
+        tracing::debug!("patch inventory {} successfully", id);
         Ok(())
     }
 }
