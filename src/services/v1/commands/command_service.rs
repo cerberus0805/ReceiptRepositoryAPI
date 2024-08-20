@@ -1,4 +1,4 @@
-use crate::{models::v1::commands::writer_command::WriterCommand, repository::DbRepository, services::v1::{currencies::currencies_service::CurrencyService, inventories::inventories_service::InventroyService, products::products_service::ProductService, receipts::receipts_service::ReceiptService, stores::stores_service::StoreService}};
+use crate::{models::v1::commands::writer_command::WriterCommand, repository::DbRepository, services::v1::{currencies::currencies_service::CurrencyService, inventories::inventories_service::InventoryService, products::products_service::ProductService, receipts::receipts_service::ReceiptService, stores::stores_service::StoreService}};
 
 pub struct CommandService {
 }
@@ -44,7 +44,7 @@ impl CommandService {
                             let _ = service.patch_product(id, &patch_product);
                         }, 
                         WriterCommand::PatchInventory(id, patch_inventory) => {
-                            let service = InventroyService::new(&repository);
+                            let service = InventoryService::new(&repository);
                             tracing::debug!("Start to process patch inventory {}", id);
                             let _ = service.patch_inventory(id, &patch_inventory);
                         }

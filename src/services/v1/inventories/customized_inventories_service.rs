@@ -23,11 +23,12 @@ use crate::{
     }
 };
 
-pub struct CustomizedInventroyService<'a> {
+#[derive(Clone)]
+pub struct CustomizedInventoryService<'a> {
     repository: &'a DbRepository
 }
 
-impl<'a> CustomizedInventroyService<'a> {
+impl<'a> CustomizedInventoryService<'a> {
     pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository

@@ -1,7 +1,7 @@
 use axum::{extract::{rejection::{JsonRejection, PathRejection}, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
-    models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchInventoryPayload, parameters::pagination::Pagination, responses::response_inventory::{ResponseInventoriesPayload, ResponseInventoryPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, inventories::inventories_service::InventroyService}, share_state::HandlerState
+    models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchInventoryPayload, parameters::pagination::Pagination, responses::response_inventory::{ResponseInventoriesPayload, ResponseInventoryPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, inventories::inventories_service::InventoryService}, share_state::HandlerState
 };
 
 pub struct InventoriesHandlers {
@@ -9,7 +9,7 @@ pub struct InventoriesHandlers {
 
 impl InventoriesHandlers {
     pub async fn get_inventory(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = InventroyService::new(&handler_state.repository);
+        let service = InventoryService::new(&handler_state.repository);
         if let Ok(i_id) = id {
             let response_inventory = service.get_inventory(i_id.0 as i32).await;
             match response_inventory {
@@ -43,7 +43,7 @@ impl InventoriesHandlers {
     }
 
     pub async fn get_inventories(State(handler_state): State<HandlerState>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = InventroyService::new(&handler_state.repository);
+        let service = InventoryService::new(&handler_state.repository);
         let inventory_collection = service.get_inventories(&pagination.unwrap_or_default().0).await;
         match inventory_collection {
             Ok(responses) => {
