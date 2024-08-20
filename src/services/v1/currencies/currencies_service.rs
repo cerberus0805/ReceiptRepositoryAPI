@@ -118,6 +118,7 @@ impl<'a> CurrencyService<'a> {
             Err(ApiError::UpdateCurrencyFailed)
         })?;
 
+        tracing::debug!("patch currency {} successfully", id);
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 use axum::{extract::{rejection::PathRejection, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
-    models::v1::{errors::api_error::ApiError, parameters::{pagination::Pagination, query_filters::QueryFilters}, responses::response_inventory::{ResponseCustomizedInventoriesPayload, ResponseCustomizedInventoryPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, inventories::customized_inventories_service::CustomizedInventroyService}, share_state::HandlerState
+    models::v1::{errors::api_error::ApiError, parameters::{pagination::Pagination, query_filters::QueryFilters}, responses::response_inventory::{ResponseCustomizedInventoriesPayload, ResponseCustomizedInventoryPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, inventories::customized_inventories_service::CustomizedInventoryService}, share_state::HandlerState
 };
 
 pub struct CustomizedInventoriesHandlers {
@@ -9,7 +9,7 @@ pub struct CustomizedInventoriesHandlers {
 
 impl CustomizedInventoriesHandlers {
     pub async fn get_customized_inventory(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         if let Ok(i_id) = id {
             let response_inventory = service.get_customized_inventory(i_id.0 as i32).await;
             match response_inventory {
@@ -43,7 +43,7 @@ impl CustomizedInventoriesHandlers {
     }
 
     pub async fn get_customized_inventories(State(handler_state): State<HandlerState>, pagination: Option<Query<Pagination>>, query_filters: Option<Query<QueryFilters>>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         let inventories_collection = service.get_customized_inventories(&pagination.unwrap_or_default().0, &query_filters.unwrap_or_default().0).await;
         match inventories_collection {
             Ok(responses) => {
@@ -68,7 +68,7 @@ impl CustomizedInventoriesHandlers {
     }
 
     pub async fn get_customized_inventories_by_product_id(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         if let Ok(p_id) = id {
             let inventories_collection = service.get_customized_inventories_by_product_id(p_id.0 as i32, &pagination.unwrap_or_default().0).await;
             match inventories_collection {
@@ -103,7 +103,7 @@ impl CustomizedInventoriesHandlers {
     }
 
     pub async fn get_customized_inventories_by_receipt_id(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         if let Ok(r_id) = id {
             let inventories_collection = service.get_customized_inventories_by_receipt_id(r_id.0 as i32, &pagination.unwrap_or_default().0).await;
             match inventories_collection {
@@ -138,7 +138,7 @@ impl CustomizedInventoriesHandlers {
     }
 
     pub async fn get_customized_inventories_by_store_id(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         if let Ok(s_id) = id {
             let inventories_collection = service.get_customized_inventories_by_store_id(s_id.0 as i32, &pagination.unwrap_or_default().0).await;
             match inventories_collection {
@@ -173,7 +173,7 @@ impl CustomizedInventoriesHandlers {
     }
 
     pub async fn get_customized_inventories_by_currency_id(State(handler_state): State<HandlerState>, id: Result<Path<u32>, PathRejection>, pagination: Option<Query<Pagination>>) -> impl IntoResponse {
-        let service = CustomizedInventroyService::new(&handler_state.repository);
+        let service = CustomizedInventoryService::new(&handler_state.repository);
         if let Ok(c_id) = id {
             let inventories_collection = service.get_customized_inventories_by_currency_id(c_id.0 as i32, &pagination.unwrap_or_default().0).await;
             match inventories_collection {

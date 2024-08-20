@@ -12,10 +12,9 @@ use crate::{
     repository::DbRepository, 
     schema::{
         currencies, inventories, products, receipts, stores
-    }, services::v1::{converters::converters_service::ConverterService, currencies::currencies_service::CurrencyService, fallbacks::fallbacks_service::FallbacksService, inventories::inventories_service::InventroyService, products::products_service::ProductService, stores::stores_service::StoreService, validators::formdata_validators_service::{FormDataValidatorService, FormRelationshipModelStatus}}
+    }, services::v1::{converters::converters_service::ConverterService, currencies::currencies_service::CurrencyService, fallbacks::fallbacks_service::FallbacksService, inventories::inventories_service::InventoryService, products::products_service::ProductService, stores::stores_service::StoreService, validators::formdata_validators_service::{FormDataValidatorService, FormRelationshipModelStatus}}
 };
 
-#[derive(Clone)]
 pub struct ReceiptService<'a> {
     repository: &'a DbRepository
 }
@@ -212,7 +211,7 @@ impl<'a> ReceiptService<'a> {
                 receipt_id: receipt_ref_id
             };
 
-            let inventory_service = InventroyService::new(&self.repository);
+            let inventory_service = InventoryService::new(&self.repository);
             let _inventory_id = inventory_service.new_inventory(&new_inventory).await?;
         }
         
@@ -334,6 +333,7 @@ impl<'a> ReceiptService<'a> {
             })?;
         }
 
+        tracing::debug!("patch receipt {} successfully", id);
         Ok(())
     }
 

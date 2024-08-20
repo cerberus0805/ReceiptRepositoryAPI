@@ -5,11 +5,11 @@ use diesel::{
 
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::EntityProduct}, errors::api_error::ApiError, forms::patch_payload::PatchInventoryPayload, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
-pub struct InventroyService<'a> {
+pub struct InventoryService<'a> {
     repository: &'a DbRepository
 }
 
-impl<'a> InventroyService<'a> {
+impl<'a> InventoryService<'a> {
     pub fn new(repository: &'a DbRepository) -> Self {
         Self {
             repository
@@ -119,6 +119,7 @@ impl<'a> InventroyService<'a> {
             Err(ApiError::UpdateInventoryFailed)
         })?;
 
+        tracing::debug!("patch inventory {} successfully", id);
         Ok(())
     }
 }

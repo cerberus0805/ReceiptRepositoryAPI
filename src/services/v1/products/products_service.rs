@@ -208,6 +208,7 @@ impl<'a> ProductService<'a> {
             Err(ApiError::UpdateProductFailed)
         })?;
 
+        tracing::debug!("patch product {} successfully", id);
         Ok(())
     }
 }
