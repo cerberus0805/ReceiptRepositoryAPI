@@ -31,22 +31,22 @@ impl CommandService {
                         WriterCommand::PatchCurrency(id, patch_currency) => {
                             let service = CurrencyService::new(&repository);
                             tracing::debug!("Start to process patch currency {}", id);
-                            let _ = service.patch_currency(id, &patch_currency);
+                            let _ = service.patch_currency(id, &patch_currency).await;
                         }, 
                         WriterCommand::PatchStore(id, patch_store) => {
                             let service = StoreService::new(&repository);
                             tracing::debug!("Start to process patch store {}", id);
-                            let _ = service.patch_store(id, &patch_store);
+                            let _ = service.patch_store(id, &patch_store).await;
                         }, 
                         WriterCommand::PatchProduct(id, patch_product) => {
                             let service = ProductService::new(&repository);
                             tracing::debug!("Start to process patch product {}", id);
-                            let _ = service.patch_product(id, &patch_product);
+                            let _ = service.patch_product(id, &patch_product).await;
                         }, 
                         WriterCommand::PatchInventory(id, patch_inventory) => {
                             let service = InventoryService::new(&repository);
                             tracing::debug!("Start to process patch inventory {}", id);
-                            let _ = service.patch_inventory(id, &patch_inventory);
+                            let _ = service.patch_inventory(id, &patch_inventory).await;
                         }
                     }
                 }

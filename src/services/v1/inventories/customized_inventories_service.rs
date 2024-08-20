@@ -23,7 +23,6 @@ use crate::{
     }
 };
 
-#[derive(Clone)]
 pub struct CustomizedInventoryService<'a> {
     repository: &'a DbRepository
 }

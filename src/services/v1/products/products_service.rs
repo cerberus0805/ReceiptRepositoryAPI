@@ -11,7 +11,6 @@ use crate::{
     services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}
 };
 
-#[derive(Clone)]
 pub struct ProductService<'a> {
     repository: &'a DbRepository
 }

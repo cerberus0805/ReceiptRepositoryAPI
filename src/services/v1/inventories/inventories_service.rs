@@ -5,7 +5,6 @@ use diesel::{
 
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::{entity_inventory::{EntityInventory, NewEntityInventory}, entity_product::EntityProduct}, errors::api_error::ApiError, forms::patch_payload::PatchInventoryPayload, parameters::pagination::Pagination, responses::response_inventory::ResponseInventory}, repository::DbRepository, schema::{inventories, products}, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
 
-#[derive(Clone)]
 pub struct InventoryService<'a> {
     repository: &'a DbRepository
 }

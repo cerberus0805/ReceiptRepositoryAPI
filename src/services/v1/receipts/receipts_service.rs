@@ -15,7 +15,6 @@ use crate::{
     }, services::v1::{converters::converters_service::ConverterService, currencies::currencies_service::CurrencyService, fallbacks::fallbacks_service::FallbacksService, inventories::inventories_service::InventoryService, products::products_service::ProductService, stores::stores_service::StoreService, validators::formdata_validators_service::{FormDataValidatorService, FormRelationshipModelStatus}}
 };
 
-#[derive(Clone)]
 pub struct ReceiptService<'a> {
     repository: &'a DbRepository
 }
