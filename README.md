@@ -39,6 +39,8 @@ Article in English and Mandarin: https://concurrentseal.wordpress.com/
 ## Query on Some Columns with axum and diesel
 [A Journey with Rust Web API – 11 customized query filters in axum and with diesel [Rust Web API 之旅 – 11 axum 中的 客製化查詢篩選與 diesel]](https://concurrentseal.wordpress.com/2024/08/18/a-journey-with-rust-web-api-10-customized-query-filters-in-axum-and-with-diesel-rust-web-api-%e4%b9%8b%e6%97%85-09-axum-%e4%b8%ad%e7%9a%84-%e5%ae%a2%e8%a3%bd%e5%8c%96%e6%9f%a5/)
 
+## Adopt mpsc to resolve concurrent write problem
+[A Journey with Rust Web API – 12 tokio mpsc: an approach to resolve concurrent write problems [Rust Web API 之旅 – 12 透過 tokio mpsc 解決並行問題]](https://concurrentseal.wordpress.com/2024/08/24/a-journey-with-rust-web-api-12-tokio-mpsc-an-approach-to-resolve-concurrent-problems-with-rust-web-api-%e4%b9%8b%e6%97%85-12-%e9%80%8f%e9%81%8e-tokio-mpsc-%e8%a7%a3%e6%b1%ba/)
 
 ## Sample .env file
 DATABASE_URL=<your_database_url>  
