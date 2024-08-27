@@ -36,6 +36,7 @@ diesel::table! {
         is_inventory_taxed -> Bool,
         currency_id -> Int4,
         store_id -> Int4,
+        transaction_id -> Nullable<Uuid>,
     }
 }
 

@@ -19,6 +19,7 @@ impl<'a> AppRouter {
     pub fn new(handler_state: HandlerState) -> Self {
         let router = Router::new()
             .route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt))
+            .route("/api/v1/receipts/transaction/:transaction_id", get(ReceiptsHandlers::get_receipt_by_transaction_id))
             .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
             .route("/api/v1/receipts", post(ReceiptsHandlers::post_receipt))
             .route("/api/v1/receipts/:id", patch(ReceiptsHandlers::patch_receipt))

@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::Deserialize;
+use uuid::Uuid;
 
 pub trait FormRelationshipModelIdOrName {
     fn get_id_field(&self) -> Option<i32>;
@@ -71,6 +72,7 @@ pub struct CreateInventoryInReceiptPayload {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct CreateReceiptPayload {
+    pub transaction_id: Option<Uuid>,
     pub transaction_date: NaiveDateTime,
     pub is_inventory_taxed: bool,
     pub currency: CreateCurrencyInReceiptPayload,

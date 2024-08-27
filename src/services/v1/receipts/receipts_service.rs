@@ -2,6 +2,7 @@ use bigdecimal::{BigDecimal, FromPrimitive};
 use diesel::{
     delete, dsl::{count, exists, not}, insert_into, select, update, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper
 };
+use uuid::Uuid;
 
 use crate::{
     models::v1::{
@@ -106,6 +107,47 @@ impl<'a> ReceiptService<'a> {
         })
     }
 
+    pub async fn get_receipt_by_transaction_id(&self, id: Uuid) -> Result<ResponseReceipt, ApiError> {
+        let converter = ConverterService::new();
+        let conn = &mut self.repository.pool.get().or_else(
+            |e| {
+                tracing::error!("database connection broken: {}", e);
+                Err(ApiError::DatabaseConnectionBroken)
+            })?;
+
+        let receipt_query = 
+            receipts::table
+                .inner_join(currencies::table)
+                .inner_join(stores::table)
+                .filter(receipts::transaction_id.eq(id))
+                .select(<(EntityReceipt, EntityCurrency, EntityStore)>::as_select());
+
+        let (receipt, currency, store) = receipt_query.get_result::<(EntityReceipt, EntityCurrency, EntityStore)>(conn).or_else(
+            |e| {
+                tracing::warn!("try to get a non existed receipt ({}): {}", id, e);
+                Err(ApiError::NoRecord)
+            }
+        )?;
+
+        let inventories_query = 
+            inventories::table
+                .inner_join(products::table)
+                .filter(inventories::receipt_id.eq(receipt.id))
+                .select(<(EntityInventory, EntityProduct)>::as_select());
+
+        let inventories_products = inventories_query.get_results::<(EntityInventory, EntityProduct)>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let mut inventories = vec![];
+        for inventory_product in inventories_products {
+            inventories.push(converter.convert_to_inventory_response(inventory_product.0, inventory_product.1));
+        }
+
+
+        let receipt_response = converter.convert_to_receipt_response(receipt, currency, store, inventories);
+
+        Ok(receipt_response)
+    }
+
     async fn new_receipt(&self, receipt: &NewEntityReceipt) -> Result<i32, ApiError> {
         let conn = &mut self.repository.pool.get().or_else(
             |e| {
@@ -178,6 +220,7 @@ impl<'a> ReceiptService<'a> {
         let new_receipt = NewEntityReceipt {
             transaction_date: form_receipt.transaction_date,
             is_inventory_taxed: form_receipt.is_inventory_taxed,
+            transaction_id: form_receipt.transaction_id,
             currency_id: currency_ref_id,
             store_id: store_ref_id
         };

@@ -15,7 +15,7 @@ impl CommandService {
                     match result {
                         WriterCommand::CreateReceipt(new_receipt) => {
                             let service = ReceiptService::new(&repository);
-                            tracing::debug!("Start to process create new receipt at date: {}", new_receipt.transaction_date);
+                            tracing::debug!("Start to process create new receipt at date: {}, transaction_id: {:#?}", new_receipt.transaction_date, new_receipt.transaction_id);
                             let _ = service.create_receipt(&new_receipt).await;
                         },
                         WriterCommand::DeleteReceipt(id) => {
