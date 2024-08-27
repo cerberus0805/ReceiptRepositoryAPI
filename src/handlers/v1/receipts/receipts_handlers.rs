@@ -8,6 +8,7 @@ use axum::{
     http::StatusCode, 
     response::IntoResponse, Json
 };
+use uuid::Uuid;
 
 use crate::{
     models::v1::{
@@ -19,8 +20,7 @@ use crate::{
         }, 
         parameters::pagination::Pagination, 
         responses::response_receipt::{
-            ResponseReceiptPayload, 
-            ResponseReceiptsPayload
+            ResponseCreateReceiptPayload, ResponseReceiptPayload, ResponseReceiptsPayload
         }
     }, 
     services::v1::{
@@ -92,18 +92,56 @@ impl ReceiptsHandlers {
         }
     }
 
+    pub async fn get_receipt_by_transaction_id(State(handler_state): State<HandlerState>, transaction_id: Result<Path<Uuid>, PathRejection>) -> impl IntoResponse {
+        if let Ok(t_id) = transaction_id {
+            let service = ReceiptService::new(&handler_state.repository);
+            let response_receipt = service.get_receipt_by_transaction_id(t_id.0).await;
+            match response_receipt {
+                Ok(response) => {
+                    let payload = ResponseReceiptPayload {
+                        data: Some(response),
+                        error: None
+                    };
+            
+                    (StatusCode::OK, Json(payload))
+                },
+                Err(e) => {
+                    let api_error_converter_service = ApiErrorConventerService::new();
+                    let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
+
+                    let payload = ResponseReceiptPayload {
+                        data: None,
+                        error: Some(e)
+                    };
+                    (http_return_code, Json(payload))
+                }
+            }
+        }
+        else {
+            let payload = ResponseReceiptPayload {
+                data: None,
+                error: Some(ApiError::InvalidParameter)
+            };
+
+            (StatusCode::BAD_REQUEST, Json(payload))
+        }
+    }
+
     pub async fn post_receipt(State(handler_state): State<HandlerState>,  payload: Result<Json<CreateReceiptPayload>, JsonRejection>) -> impl IntoResponse {
-        if let Ok(r_payload) = payload { 
+        if let Ok(mut r_payload) = payload { 
+            // We always create a new Uuid and ignore this field even if client has filled it.
+            let transaction_id = Uuid::new_v4();
+            r_payload.0.transaction_id = Some(transaction_id.clone());
             let create_command = WriterCommand::CreateReceipt(r_payload.0);
             let _ = handler_state.sender.send(create_command).await;
-            let response = ResponseReceiptPayload {
-                data: None,
+            let response = ResponseCreateReceiptPayload {
+                data: Some(transaction_id),
                 error: None
             };
             (StatusCode::ACCEPTED, Json(response))
         }
         else {
-            let payload = ResponseReceiptPayload {
+            let payload = ResponseCreateReceiptPayload {
                 data: None,
                 error: Some(ApiError::InvalidParameter)
             };

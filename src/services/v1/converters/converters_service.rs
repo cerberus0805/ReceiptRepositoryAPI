@@ -105,6 +105,7 @@ impl ConverterService {
         let response_receipt = ResponseReceipt {
             id: receipt.id,
             transaction_date: receipt.transaction_date,
+            transaction_id: receipt.transaction_id,
             is_inventory_taxed: receipt.is_inventory_taxed,
             currency: self.convert_to_currency_response(currency),
             store: self.convert_to_store_response(store),

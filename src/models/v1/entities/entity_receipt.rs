@@ -14,7 +14,8 @@ pub struct EntityReceipt {
     pub transaction_date: NaiveDateTime,
     pub is_inventory_taxed: bool,
     pub currency_id: i32,
-    pub store_id: i32
+    pub store_id: i32,
+    pub transaction_id: Option<uuid::Uuid>
 }
 
 #[derive(Insertable, Debug)]
@@ -26,5 +27,6 @@ pub struct NewEntityReceipt {
     pub transaction_date: NaiveDateTime,
     pub is_inventory_taxed: bool,
     pub currency_id: i32,
-    pub store_id: i32
+    pub store_id: i32,
+    pub transaction_id: Option<uuid::Uuid>
 }
