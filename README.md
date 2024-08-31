@@ -42,6 +42,9 @@ Article in English and Mandarin: https://concurrentseal.wordpress.com/
 ## Adopt mpsc to resolve concurrent write problem
 [A Journey with Rust Web API – 12 tokio mpsc: an approach to resolve concurrent write problems [Rust Web API 之旅 – 12 透過 tokio mpsc 解決並行問題]](https://concurrentseal.wordpress.com/2024/08/24/a-journey-with-rust-web-api-12-tokio-mpsc-an-approach-to-resolve-concurrent-problems-with-rust-web-api-%e4%b9%8b%e6%97%85-12-%e9%80%8f%e9%81%8e-tokio-mpsc-%e8%a7%a3%e6%b1%ba/)
 
+## Trace asynchronous tasks by uuid with diesel
+[A Journey with Rust Web API – 13 tracing asynchronous tasks by uuid with diesel [Rust Web API 之旅 – 13 利用 diesel 來透過 uuid 來追蹤非同步工作]](https://concurrentseal.wordpress.com/2024/08/31/a-journey-with-rust-web-api-13-tracing-asynchronous-tasks-by-uuid-with-diesel-rust-web-api-%e4%b9%8b%e6%97%85-13-%e5%88%a9%e7%94%a8-diesel-%e4%be%86%e9%80%8f%e9%81%8e-uuid/)
+
 ## Sample .env file
 DATABASE_URL=<your_database_url>  
 BIND_ADDR=0.0.0.0  
