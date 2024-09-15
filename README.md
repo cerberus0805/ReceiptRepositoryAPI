@@ -3,8 +3,8 @@ An example of Rust WebAPI Server - axum and diesel example
 
 Article in English and Mandarin: https://concurrentseal.wordpress.com/
 
-## Project Introduction (Mandarin only)
-[Rust Web API之旅 – 00](https://concurrentseal.wordpress.com/2024/06/01/rust-web-api%e4%b9%8b%e6%97%85-00/)
+## Project Introduction
+[A Journey with Rust Web API – 00 Project Requirement Analysis [Rust Web API 之旅 – 00 專案的需求分析]](https://concurrentseal.wordpress.com/2024/06/01/rust-web-api%e4%b9%8b%e6%97%85-00/)
 
 ## axum Get Handler
 [A Journey with Rust Web API – 01 GET handler of Rust axum [Rust Web API 之旅 – 01 Rust axum 的 GET handler]](https://concurrentseal.wordpress.com/2024/06/10/rust-web-api%e4%b9%8b%e6%97%85-01/)
