@@ -52,4 +52,10 @@ impl AppConfig {
         let buffer_size: usize = env::var("WRITER_CHANNEL_BUFFER_SIZE").unwrap_or("128".to_string()).parse().expect("Convert channel buffer size to usize failed");
         buffer_size
     }
+
+    pub fn get_allow_origins(&self) -> Vec<String> {
+        let allow_origins_str = env::var("ALLOW_ORIGINS").unwrap_or("".to_string());
+        let allow_origin_vec = allow_origins_str.split(",").map(|o| { o.to_string() }).collect::<Vec<String>>();
+        allow_origin_vec
+    }
 }

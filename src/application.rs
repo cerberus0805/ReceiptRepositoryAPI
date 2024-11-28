@@ -1,3 +1,7 @@
+use http::{HeaderValue, Method};
+use http::header::CONTENT_TYPE;
+use tower_http::cors::CorsLayer;
+
 use crate::router::AppRouter;
 use crate::listener::AppListener;
 
@@ -14,8 +18,16 @@ impl Application {
         }
     }
 
-    pub async fn run(self) {
+    pub async fn run(self, allow_origins: &Vec<String>) {
         tracing::info!("app start");
-        axum::serve(self.app_listener.listener, self.app_router.router).await.unwrap();
+
+        let allow_origin_header_values = allow_origins.into_iter().map(|o| { o.parse::<HeaderValue>().unwrap() }).collect::<Vec<HeaderValue>>();
+        let cors = 
+            CorsLayer::new()
+            .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
+            .expose_headers([CONTENT_TYPE])
+            .allow_headers([CONTENT_TYPE])
+            .allow_origin(allow_origin_header_values);
+        axum::serve(self.app_listener.listener, self.app_router.router.layer(cors)).await.unwrap();
     }
 }
