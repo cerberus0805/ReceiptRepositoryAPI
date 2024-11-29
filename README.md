@@ -1,13 +1,13 @@
-# ReceiptRepositoryAPI (Work in Progress)
+# ReceiptRepositoryAPI
 An example of Rust WebAPI Server - axum and diesel example
 
 Article in English and Mandarin: https://concurrentseal.wordpress.com/
 
-## Project Introduction (Mandarin only)
-[Rust Web API之旅 – 00](https://concurrentseal.wordpress.com/2024/06/01/rust-web-api%e4%b9%8b%e6%97%85-00/)
+## Project Introduction
+[A Journey with Rust Web API – 00 Project Requirement Analysis [Rust Web API 之旅 – 00 專案的需求分析]](https://concurrentseal.wordpress.com/2024/06/01/rust-web-api%e4%b9%8b%e6%97%85-00/)
 
-## axum Get Handler (Mandarin only)
-[Rust Web API之旅 – 01](https://concurrentseal.wordpress.com/2024/06/10/rust-web-api%e4%b9%8b%e6%97%85-01/)
+## axum Get Handler
+[A Journey with Rust Web API – 01 GET handler of Rust axum [Rust Web API 之旅 – 01 Rust axum 的 GET handler]](https://concurrentseal.wordpress.com/2024/06/10/rust-web-api%e4%b9%8b%e6%97%85-01/)
 
 ## Run a PostgreSQL Docker and diesel CLI Usage
 [A Journey with Rust Web API – 02 Rust ORM Diesel with PostgreSQL [Rust Web API 之旅 – 02 Rust 的 Diesel 套件與 PostgreSQL 資料庫]](https://concurrentseal.wordpress.com/2024/06/16/a-journey-with-rust-web-api-02-rust-orm-diesel-with-postgresql-rust-web-api-%e4%b9%8b%e6%97%85-02-rust-%e7%9a%84-diesel-%e5%a5%97%e4%bb%b6%e8%88%87-postgresql-%e8%b3%87%e6%96%99%e5%ba%ab/)
