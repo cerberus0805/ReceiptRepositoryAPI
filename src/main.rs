@@ -38,6 +38,5 @@ async fn main() {
     let router = AppRouter::new(handler_state);
     let listener = AppListener::new(config.get_address()).await.expect("TCP listener should be created successfully.");
     let app = Application::new(router, listener);
-
-    app.run().await;
+    app.run(config.get_allow_origins().as_ref()).await;
 }
