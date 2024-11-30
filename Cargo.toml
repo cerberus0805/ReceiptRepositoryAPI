@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.8", features = ["tracing"] }
+axum = { version = "0.7.9", features = ["tracing"] }
 bigdecimal = { version = "0.4.6", features = ["serde"] }
 chrono = { version = "0.4.38", features = ["default", "serde"] }
 diesel = { version = "2.2.5", features = ["postgres", "extras", "uuid"] }
