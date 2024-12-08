@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper, TextExpressionMethods
 };
 
 use crate::{
@@ -178,5 +178,36 @@ impl<'a> StoreService<'a> {
         
         tracing::debug!("patch store {} successfully", id);
         Ok(())
+    }
+
+    pub async fn autocomplete_stores(&self, keyword: &Option<String>) -> Result<ServiceCollection<ResponseStore>, ApiError> {
+        let converter: ConverterService = ConverterService::new();
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let build_query = || {
+            let mut sql_filters = stores::table.limit(20).into_boxed();
+            if let Some(kw) = &keyword {
+                let store_name_pattern = format!("%{}%", kw);
+                sql_filters = sql_filters.filter(stores::name.like(store_name_pattern))
+            }
+
+            sql_filters
+        };
+
+        let count: i64 = build_query().select(count(stores::columns::name)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let stores_query = build_query().select(<EntityStore>::as_select());
+
+        let stores_list = stores_query.get_results::<EntityStore>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        Ok({
+            ServiceCollection { 
+                partial_collection: converter.convert_to_all_stores_response(stores_list),
+                total_count: count
+            }
+        })
     }
 }

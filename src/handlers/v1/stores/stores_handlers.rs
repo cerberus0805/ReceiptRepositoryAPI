@@ -1,6 +1,6 @@
 use axum::{extract::{rejection::{JsonRejection, PathRejection}, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
-use crate::{models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchStorePayload, parameters::pagination::Pagination, responses::response_store::{ResponseStorePayload, ResponseStoresPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, stores::stores_service::StoreService}, share_state::HandlerState};
+use crate::{models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchStorePayload, parameters::{pagination::Pagination, query_filters::KeywordFilters}, responses::response_store::{ResponseStorePayload, ResponseStoresPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, stores::stores_service::StoreService}, share_state::HandlerState};
 
 
 pub struct StoresHandlers {   
@@ -85,6 +85,38 @@ impl StoresHandlers {
             };
 
             (StatusCode::BAD_REQUEST, Json(payload))
+        }
+    }
+
+    pub async fn autocomplete_stores(State(handler_state): State<HandlerState>, kw: Option<Query<KeywordFilters>>) -> impl IntoResponse {
+        let service = StoreService::new(&handler_state.repository);
+        let stores_collection;
+        if let Some(keyword) = kw {
+            stores_collection = service.autocomplete_stores(&keyword.0.keyword).await;
+        }
+        else {
+            stores_collection = service.autocomplete_stores(&None::<String>).await;
+        }
+
+        match stores_collection {
+            Ok(responses) => {
+                let payload = ResponseStoresPayload {
+                    data: Some(responses.partial_collection),
+                    total: Some(responses.total_count),
+                    error: None
+                };
+                (StatusCode::OK, Json(payload))
+            },
+            Err(e) => {
+                let api_error_converter_service = ApiErrorConventerService::new();
+                let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
+                let payload = ResponseStoresPayload {
+                    data: None,
+                    total: None,
+                    error: Some(e)
+                };
+                (http_return_code, Json(payload))
+            }
         }
     }
 }

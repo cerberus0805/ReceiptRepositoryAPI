@@ -27,3 +27,16 @@ impl Default for QueryFilters {
         }
     }
 }
+
+#[derive(Deserialize, Debug)]
+pub struct KeywordFilters {
+    pub keyword: Option<String>
+}
+
+impl Default for KeywordFilters {
+    fn default() -> Self {
+        Self {
+            keyword: None
+        }
+    }
+}

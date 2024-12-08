@@ -1,6 +1,6 @@
 use axum::{extract::{rejection::{JsonRejection, PathRejection}, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
-use crate::{models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchProductPayload, parameters::pagination::Pagination, responses::response_product::{ResponseProductPayload, ResponseProductsPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, products::products_service::ProductService}, share_state::HandlerState};
+use crate::{models::v1::{commands::writer_command::WriterCommand, errors::api_error::ApiError, forms::patch_payload::PatchProductPayload, parameters::{pagination::Pagination, query_filters::KeywordFilters}, responses::response_product::{ResponseProductPayload, ResponseProductsPayload}}, services::v1::{converters::api_error_converter_service::ApiErrorConventerService, products::products_service::ProductService}, share_state::HandlerState};
 
 
 pub struct ProductsHandlers {   
@@ -85,6 +85,38 @@ impl ProductsHandlers {
             };
 
             (StatusCode::BAD_REQUEST, Json(payload))
+        }
+    }
+
+    pub async fn autocomplete_products(State(handler_state): State<HandlerState>, kw: Option<Query<KeywordFilters>>) -> impl IntoResponse {
+        let service = ProductService::new(&handler_state.repository);
+        let products_collection;
+        if let Some(keyword) = kw {
+            products_collection = service.autocomplete_products(&keyword.0.keyword).await;
+        }
+        else {
+            products_collection = service.autocomplete_products(&None::<String>).await;
+        }
+
+        match products_collection {
+            Ok(responses) => {
+                let payload = ResponseProductsPayload {
+                    data: Some(responses.partial_collection),
+                    total: Some(responses.total_count),
+                    error: None
+                };
+                (StatusCode::OK, Json(payload))
+            },
+            Err(e) => {
+                let api_error_converter_service = ApiErrorConventerService::new();
+                let http_return_code = api_error_converter_service.get_http_status_from_api_error(&e);
+                let payload = ResponseProductsPayload {
+                    data: None,
+                    total: None,
+                    error: Some(e)
+                };
+                (http_return_code, Json(payload))
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper, TextExpressionMethods
 };
 
 use crate::{models::v1::{collections::service_collection::ServiceCollection, entities::entity_currency::{EntityCurrency, NewEntityCurrency, UpdateEntityCurrency}, errors::api_error::ApiError, forms::patch_payload::PatchCurrencyPayload, parameters::pagination::Pagination, responses::response_currency::ResponseCurrency}, repository::DbRepository, schema::currencies, services::v1::{converters::converters_service::ConverterService, fallbacks::fallbacks_service::FallbacksService}};
@@ -120,5 +120,36 @@ impl<'a> CurrencyService<'a> {
 
         tracing::debug!("patch currency {} successfully", id);
         Ok(())
+    }
+
+    pub async fn autocomplete_currencies(&self, keyword: &Option<String>) -> Result<ServiceCollection<ResponseCurrency>, ApiError> {
+        let converter: ConverterService = ConverterService::new();
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let build_query = || {
+            let mut sql_filters = currencies::table.limit(20).into_boxed();
+            if let Some(kw) = &keyword {
+                let currency_name_pattern = format!("%{}%", kw);
+                sql_filters = sql_filters.filter(currencies::name.like(currency_name_pattern))
+            }
+
+            sql_filters
+        };
+
+        let count: i64 = build_query().select(count(currencies::columns::name)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let currencies_query = build_query().select(<EntityCurrency>::as_select());
+
+        let currencies_list = currencies_query.get_results::<EntityCurrency>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        Ok({
+            ServiceCollection { 
+                partial_collection: converter.convert_to_all_currencies_response(currencies_list),
+                total_count: count
+            }
+        })
     }
 }
