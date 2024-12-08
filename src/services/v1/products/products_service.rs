@@ -1,5 +1,5 @@
 use diesel::{
-    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper
+    dsl::{count, exists, select}, insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl, SelectableHelper, TextExpressionMethods
 };
 
 use crate::{
@@ -210,5 +210,36 @@ impl<'a> ProductService<'a> {
 
         tracing::debug!("patch product {} successfully", id);
         Ok(())
+    }
+
+    pub async fn autocomplete_products(&self, keyword: &Option<String>) -> Result<ServiceCollection<ResponseProduct>, ApiError> {
+        let converter: ConverterService = ConverterService::new();
+        let conn = &mut self.repository.pool.get().or_else(|e| {
+            tracing::error!("database connection broken: {}", e);
+            Err(ApiError::DatabaseConnectionBroken)
+        })?;
+
+        let build_query = || {
+            let mut sql_filters = products::table.limit(20).into_boxed();
+            if let Some(kw) = &keyword {
+                let product_name_pattern = format!("%{}%", kw);
+                sql_filters = sql_filters.filter(products::name.like(product_name_pattern))
+            }
+
+            sql_filters
+        };
+
+        let count: i64 = build_query().select(count(products::columns::name)).first(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        let products_query = build_query().select(<EntityProduct>::as_select());
+
+        let products_list = products_query.get_results::<EntityProduct>(conn).or_else(|_e| Err(ApiError::NoRecord))?;
+
+        Ok({
+            ServiceCollection { 
+                partial_collection: converter.convert_to_all_products_response(products_list),
+                total_count: count
+            }
+        })
     }
 }
