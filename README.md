@@ -53,6 +53,7 @@ RUST_LOG=receipt_repository_api=debug,tower_http=debug,axum::rejection=trace
 LOG_TO_FILE=0  
 LOG_DIRECTORY=.  
 LOG_PREFIX=receipt_repository_api  
+ALLOW_ORIGINS=<your_frontend_url1>,<your_frontend_url2>,<eg: http://localhost:3001,http://127.0.0.1:3001> 
 
 ## Sample of your database url
 postgres://<your_postgres_user>:<your_postgres_user_password>@<your_database_host_address>:<your_database_host_port>/<your_database_name>
