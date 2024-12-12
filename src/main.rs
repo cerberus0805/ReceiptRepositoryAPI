@@ -1,9 +1,8 @@
-use std::sync::Arc;
 use receipt_repository_api::services::v1::commands::command_service::CommandService;
 use receipt_repository_api::share_state::HandlerState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use receipt_repository_api::configuration::AppConfig;
+use receipt_repository_api::configuration::app_config;
 use receipt_repository_api::repository::DbRepository;
 use receipt_repository_api::router::AppRouter;
 use receipt_repository_api::listener::AppListener;
@@ -11,7 +10,7 @@ use receipt_repository_api::application::Application;
 
 #[tokio::main]
 async fn main() {
-    let config = Arc::new(AppConfig::new());
+    let config = app_config();
     let (non_blocking_writer, _guard);
     if config.log_to_file() {
         let file_appender = tracing_appender::rolling::hourly(config.get_log_directory(), config.get_log_prefix());

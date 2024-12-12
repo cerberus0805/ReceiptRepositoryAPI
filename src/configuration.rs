@@ -1,23 +1,43 @@
-use std::env;
+use std::{env, sync::OnceLock};
 use dotenvy::dotenv;
+use crate::error::Error;
+
+pub fn app_config() -> &'static AppConfig {
+    static INSTANCE: OnceLock<AppConfig> = OnceLock::new();
+
+    INSTANCE.get_or_init(|| {
+        AppConfig::load_from_env().unwrap_or_else(|ex| {
+            panic!("FATAL ERROR - {ex:?}")
+        })
+    })
+}
 
 pub struct AppConfig {
     host: String,
     port: u16,
-    db_url: String
+    db_url: String,
+    log_filter: String,
+    log_to_file: String, 
+    log_directory: String,
+    log_prefix: String,
+    writer_channel_buffer_size: usize,
+    allow_origins_str: String
 }
 
 impl AppConfig {
-    pub fn new() -> Self {
+    fn load_from_env() -> Result<AppConfig, Error> {
         dotenv().ok();
-        let host = env::var("BIND_ADDR").unwrap_or("0.0.0.0".to_string()).to_string();
-        let port: u16 = env::var("BIND_PORT").unwrap_or("3000".to_string()).to_string().parse().expect("Convert env port to u16 failed");
-        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not exised in environment variable").to_string();
-        Self {
-            host, 
-            port,
-            db_url
-        }
+        Ok(AppConfig {
+            host: get_env("BIND_ADDR")?,
+            port: get_env("BIND_PORT")?.parse().unwrap(),
+            db_url: get_env("DATABASE_URL")?,
+            log_filter: get_env("RUST_LOG")?,
+            log_to_file: get_env("LOG_TO_FILE")?,
+            log_directory: get_env("LOG_DIRECTORY")?,
+            log_prefix: get_env("LOG_PREFIX")?,
+            writer_channel_buffer_size: get_env("WRITER_CHANNEL_BUFFER_SIZE")?.parse().unwrap(),
+            allow_origins_str: get_env("ALLOW_ORIGINS")?
+        })
     }
 
     pub fn get_address(&self) -> String {
@@ -29,33 +49,31 @@ impl AppConfig {
     }
 
     pub fn get_log_filter(&self) -> String {
-        let log_filter = env::var("RUST_LOG").unwrap_or("receipt_repository_api=debug,tower_http=debug,axum::rejection=trace".to_string());
-        log_filter
+        self.log_filter.to_string()
     }
 
     pub fn log_to_file(&self) -> bool {
-        let flag_str = env::var("LOG_TO_FILE").unwrap_or("0".to_string());
-        flag_str != "0"
+        self.log_to_file.to_string() != "0"
     }
 
     pub fn get_log_directory(&self) -> String {
-        let log_directory = env::var("LOG_DIRECTORY").unwrap_or(".".to_string());
-        log_directory
+        self.log_directory.to_string()
     }
 
     pub fn get_log_prefix(&self) -> String {
-        let log_prefix = env::var("LOG_PREFIX").unwrap_or("receipt_repository_api".to_string());
-        log_prefix
+        self.log_prefix.to_string()
     }
 
     pub fn get_writer_channel_buffer_size(&self) -> usize {
-        let buffer_size: usize = env::var("WRITER_CHANNEL_BUFFER_SIZE").unwrap_or("128".to_string()).parse().expect("Convert channel buffer size to usize failed");
-        buffer_size
+        self.writer_channel_buffer_size
     }
 
     pub fn get_allow_origins(&self) -> Vec<String> {
-        let allow_origins_str = env::var("ALLOW_ORIGINS").unwrap_or("".to_string());
-        let allow_origin_vec = allow_origins_str.split(",").map(|o| { o.to_string() }).collect::<Vec<String>>();
+        let allow_origin_vec = self.allow_origins_str.split(",").map(|o| { o.to_string() }).collect::<Vec<String>>();
         allow_origin_vec
     }
+}
+
+fn get_env(name: &'static str) -> Result<String, Error> {
+    env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
 }
