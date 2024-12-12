@@ -17,34 +17,54 @@ pub struct AppRouter {
 
 impl<'a> AppRouter {
     pub fn new(handler_state: HandlerState) -> Self {
+        let v1_receipts_router = Router::new()
+            .route("/receipts/:id", get(ReceiptsHandlers::get_receipt))
+            .route("/receipts/transaction/:transaction_id", get(ReceiptsHandlers::get_receipt_by_transaction_id))
+            .route("/receipts", get(ReceiptsHandlers::get_receipts))
+            .route("/receipts", post(ReceiptsHandlers::post_receipt))
+            .route("/receipts/:id", patch(ReceiptsHandlers::patch_receipt))
+            .route("/receipts/:id", delete(ReceiptsHandlers::delete_receipt))
+            .route("/receipts/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_receipt_id));
+        
+        let v1_stores_router = Router::new()
+            .route("/stores/:id", get(StoresHandlers::get_store))
+            .route("/stores", get(StoresHandlers::get_stores))
+            .route("/stores/:id", patch(StoresHandlers::patch_store))
+            .route("/stores/autocomplete", get(StoresHandlers::autocomplete_stores))
+            .route("/stores/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_store_id));
+        
+        let v1_currencies_router = Router::new()
+            .route("/currencies/:id", get(CurrenciesHandlers::get_currency))
+            .route("/currencies", get(CurrenciesHandlers::get_currencies))
+            .route("/currencies/:id", patch(CurrenciesHandlers::patch_currency))
+            .route("/currencies/autocomplete", get(CurrenciesHandlers::autocomplete_currencies))
+            .route("/currencies/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_currency_id));
+        
+        let v1_product_router = Router::new()
+            .route("/products/:id", get(ProductsHandlers::get_product))
+            .route("/products", get(ProductsHandlers::get_products))
+            .route("/products/:id", patch(ProductsHandlers::patch_product))
+            .route("/products/autocomplete", get(ProductsHandlers::autocomplete_products))
+            .route("/products/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_product_id));
+        
+        let v1_inventories_router = Router::new()
+            .route("/inventories/:id", get(InventoriesHandlers::get_inventory))
+            .route("/inventories", get(InventoriesHandlers::get_inventories))
+            .route("/inventories/:id", patch(InventoriesHandlers::patch_inventory));
+        
+        let v1_customized_inventories_router = Router::new()
+            .route("/customized_inventories/:id", get(CustomizedInventoriesHandlers::get_customized_inventory))
+            .route("/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories));
+        
+        let api_v1_router = Router::new()
+            .nest("/api/v1", v1_receipts_router)
+            .nest("/api/v1", v1_stores_router)
+            .nest("/api/v1", v1_currencies_router)
+            .nest("/api/v1", v1_product_router)
+            .nest("/api/v1", v1_inventories_router)
+            .nest("/api/v1", v1_customized_inventories_router);
         let router = Router::new()
-            .route("/api/v1/receipts/:id", get(ReceiptsHandlers::get_receipt))
-            .route("/api/v1/receipts/transaction/:transaction_id", get(ReceiptsHandlers::get_receipt_by_transaction_id))
-            .route("/api/v1/receipts", get(ReceiptsHandlers::get_receipts))
-            .route("/api/v1/receipts", post(ReceiptsHandlers::post_receipt))
-            .route("/api/v1/receipts/:id", patch(ReceiptsHandlers::patch_receipt))
-            .route("/api/v1/receipts/:id", delete(ReceiptsHandlers::delete_receipt))
-            .route("/api/v1/stores/:id", get(StoresHandlers::get_store))
-            .route("/api/v1/stores", get(StoresHandlers::get_stores))
-            .route("/api/v1/stores/:id", patch(StoresHandlers::patch_store))
-            .route("/api/v1/stores/autocomplete", get(StoresHandlers::autocomplete_stores))
-            .route("/api/v1/currencies/:id", get(CurrenciesHandlers::get_currency))
-            .route("/api/v1/currencies", get(CurrenciesHandlers::get_currencies))
-            .route("/api/v1/currencies/:id", patch(CurrenciesHandlers::patch_currency))
-            .route("/api/v1/currencies/autocomplete", get(CurrenciesHandlers::autocomplete_currencies))
-            .route("/api/v1/products/:id", get(ProductsHandlers::get_product))
-            .route("/api/v1/products", get(ProductsHandlers::get_products))
-            .route("/api/v1/products/:id", patch(ProductsHandlers::patch_product))
-            .route("/api/v1/products/autocomplete", get(ProductsHandlers::autocomplete_products))
-            .route("/api/v1/inventories/:id", get(InventoriesHandlers::get_inventory))
-            .route("/api/v1/inventories", get(InventoriesHandlers::get_inventories))
-            .route("/api/v1/inventories/:id", patch(InventoriesHandlers::patch_inventory))
-            .route("/api/v1/customized_inventories/:id", get(CustomizedInventoriesHandlers::get_customized_inventory))
-            .route("/api/v1/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories))
-            .route("/api/v1/products/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_product_id))
-            .route("/api/v1/receipts/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_receipt_id))
-            .route("/api/v1/stores/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_store_id))
-            .route("/api/v1/currencies/:id/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories_by_currency_id))
+            .merge(api_v1_router)
             .with_state(handler_state)
             .layer(
                 TraceLayer::new_for_http()
