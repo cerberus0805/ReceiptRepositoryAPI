@@ -17,11 +17,11 @@ pub struct AppConfig {
     port: u16,
     db_url: String,
     log_filter: String,
-    log_to_file: String, 
+    log_to_file: bool, 
     log_directory: String,
     log_prefix: String,
     writer_channel_buffer_size: usize,
-    allow_origins_str: String
+    allow_origins: Vec<String>
 }
 
 impl AppConfig {
@@ -32,11 +32,11 @@ impl AppConfig {
             port: get_env("BIND_PORT")?.parse().unwrap(),
             db_url: get_env("DATABASE_URL")?,
             log_filter: get_env("RUST_LOG")?,
-            log_to_file: get_env("LOG_TO_FILE")?,
+            log_to_file: (|| { get_env("LOG_TO_FILE").unwrap() != "0" })(),
             log_directory: get_env("LOG_DIRECTORY")?,
             log_prefix: get_env("LOG_PREFIX")?,
             writer_channel_buffer_size: get_env("WRITER_CHANNEL_BUFFER_SIZE")?.parse().unwrap(),
-            allow_origins_str: get_env("ALLOW_ORIGINS")?
+            allow_origins: (|| {get_env("ALLOW_ORIGINS").unwrap().split(",").map(|o| { o.to_string() }).collect::<Vec<String>>() } )()
         })
     }
 
@@ -53,7 +53,7 @@ impl AppConfig {
     }
 
     pub fn log_to_file(&self) -> bool {
-        self.log_to_file.to_string() != "0"
+        self.log_to_file
     }
 
     pub fn get_log_directory(&self) -> String {
@@ -68,9 +68,8 @@ impl AppConfig {
         self.writer_channel_buffer_size
     }
 
-    pub fn get_allow_origins(&self) -> Vec<String> {
-        let allow_origin_vec = self.allow_origins_str.split(",").map(|o| { o.to_string() }).collect::<Vec<String>>();
-        allow_origin_vec
+    pub fn get_allow_origins(&self) -> &Vec<String> {
+        self.allow_origins.as_ref()
     }
 }
 
