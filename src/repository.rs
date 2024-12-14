@@ -7,7 +7,7 @@ pub struct DbRepository {
 }
 
 impl DbRepository {
-    pub fn new(url: String) -> Self {
+    pub fn new(url: &str) -> Self {
         Self {
             pool: Arc::new(
                 Pool::builder().build(ConnectionManager::<PgConnection>::new(url)).expect("Create database pool failed")
