@@ -44,24 +44,24 @@ impl AppConfig {
         format!("{}:{}", self.host, self.port)
     }
 
-    pub fn get_db_url(&self) -> String {
-        self.db_url.to_string()
+    pub fn get_db_url(&self) -> &str {
+        self.db_url.as_ref()
     }
 
-    pub fn get_log_filter(&self) -> String {
-        self.log_filter.to_string()
+    pub fn get_log_filter(&self) -> &str {
+        self.log_filter.as_ref()
     }
 
     pub fn log_to_file(&self) -> bool {
         self.log_to_file
     }
 
-    pub fn get_log_directory(&self) -> String {
-        self.log_directory.to_string()
+    pub fn get_log_directory(&self) -> &str {
+        self.log_directory.as_ref()
     }
 
-    pub fn get_log_prefix(&self) -> String {
-        self.log_prefix.to_string()
+    pub fn get_log_prefix(&self) -> &str {
+        self.log_prefix.as_ref()
     }
 
     pub fn get_writer_channel_buffer_size(&self) -> usize {
