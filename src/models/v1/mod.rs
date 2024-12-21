@@ -5,3 +5,4 @@ pub mod collections;
 pub mod errors;
 pub mod forms;
 pub mod commands;
+pub mod loginout;

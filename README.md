@@ -1,4 +1,4 @@
-# ReceiptRepositoryAPI
+# ReceiptRepositoryAPI (WIP)
 An example of Rust WebAPI Server - axum and diesel example
 
 Article in English and Mandarin: https://concurrentseal.wordpress.com/
@@ -45,15 +45,24 @@ Article in English and Mandarin: https://concurrentseal.wordpress.com/
 ## Trace asynchronous tasks by uuid with diesel
 [A Journey with Rust Web API – 13 tracing asynchronous tasks by uuid with diesel [Rust Web API 之旅 – 13 利用 diesel 來透過 uuid 來追蹤非同步工作]](https://concurrentseal.wordpress.com/2024/08/31/a-journey-with-rust-web-api-13-tracing-asynchronous-tasks-by-uuid-with-diesel-rust-web-api-%e4%b9%8b%e6%97%85-13-%e5%88%a9%e7%94%a8-diesel-%e4%be%86%e9%80%8f%e9%81%8e-uuid/)
 
+## Login (WIP)
+Work in Progress
+
 ## Sample .env file
 DATABASE_URL=<your_database_url>  
-BIND_ADDR=0.0.0.0  
+BIND_ADDR=127.0.0.1  
 BIND_PORT=3000  
 RUST_LOG=receipt_repository_api=debug,tower_http=debug,axum::rejection=trace  
 LOG_TO_FILE=0  
 LOG_DIRECTORY=.  
 LOG_PREFIX=receipt_repository_api  
-ALLOW_ORIGINS=<your_frontend_url1>,<your_frontend_url2>,<eg: http://localhost:3001,http://127.0.0.1:3001> 
+ALLOW_ORIGINS=<your_frontend_url1>,<your_frontend_url2>,<eg: https://app.localhost:3001>  
+TLS_PEM_FILES_FOLDER=self_signed_certs  
+TLS_CERT_FILE_NAME=api.app.localhost.crt.pem  
+TLS_KEY_FILE_NAME=api.app.localhost.key.pem  
+
+## Run this webapp
+This app is running under https; hence, the certificate is mandatory. It is necessary to add a folder to put certificate and key file in pem format. The folder name, certificate name and key name are defined in the environment variable. We could use openssl to generate self certificate and key in pem format and convert it to pfx format for developing purpose. The pfx format certificate could be imported to Windows if you would like to develop on Windows. The domain name of the self signed certificate is "api.app.localhost". Login API should be post to https://api.app.localhost:3000/api/v1/login with JSON payload - username and pwd fields. Refer the [frontend repository](https://github.com/cerberus0805/receipt_repository_fe) for more details.
 
 ## Sample of your database url
 postgres://<your_postgres_user>:<your_postgres_user_password>@<your_database_host_address>:<your_database_host_port>/<your_database_name>
@@ -65,3 +74,6 @@ custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
 
 [migrations_directory]  
 dir = <your_migration_directory_path>  
+
+## Build note
+To build this on Windows, you may need to install PostgreSql and CMake for Windows.

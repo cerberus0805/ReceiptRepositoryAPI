@@ -1,14 +1,14 @@
 use std::time::Duration;
 
 use axum::{
-    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, response::Response, routing::{delete, get, patch, post}, Router
+    body::Bytes, extract::MatchedPath, http::{HeaderMap, Request}, middleware, response::Response, routing::{delete, get, patch, post}, Router
 };
+use tower_cookies::CookieManagerLayer;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{info_span, Span};
 
 use crate::{
-    handlers::v1::{currencies::currencies_handlers::CurrenciesHandlers, inventories::{customized_inventories_handlers::CustomizedInventoriesHandlers, inventories_handlers::InventoriesHandlers}, products::products_handlers::ProductsHandlers, receipts::receipts_handlers::ReceiptsHandlers, stores::stores_handlers::StoresHandlers}, 
-    share_state::HandlerState
+    handlers::v1::{currencies::currencies_handlers::CurrenciesHandlers, inventories::{customized_inventories_handlers::CustomizedInventoriesHandlers, inventories_handlers::InventoriesHandlers}, loginout::loginout_handlers::LoginoutHandlers, products::products_handlers::ProductsHandlers, receipts::receipts_handlers::ReceiptsHandlers, stores::stores_handlers::StoresHandlers}, mw_auth, response_mapper::response_mapper, share_state::HandlerState
 };
 
 pub struct AppRouter {
@@ -55,6 +55,9 @@ impl<'a> AppRouter {
         let v1_customized_inventories_router = Router::new()
             .route("/customized_inventories/:id", get(CustomizedInventoriesHandlers::get_customized_inventory))
             .route("/customized_inventories", get(CustomizedInventoriesHandlers::get_customized_inventories));
+
+        let v1_login_router = Router::new()
+            .route("/login", post(LoginoutHandlers::api_login));
         
         let api_v1_router = Router::new()
             .nest("/api/v1", v1_receipts_router)
@@ -62,9 +65,14 @@ impl<'a> AppRouter {
             .nest("/api/v1", v1_currencies_router)
             .nest("/api/v1", v1_product_router)
             .nest("/api/v1", v1_inventories_router)
-            .nest("/api/v1", v1_customized_inventories_router);
+            .nest("/api/v1", v1_customized_inventories_router)
+            .route_layer(middleware::from_fn(mw_auth::mw_require_auth));
+
         let router = Router::new()
+            .nest("/api/v1", v1_login_router)
             .merge(api_v1_router)
+            .layer(middleware::map_response(response_mapper))
+            .layer(CookieManagerLayer::new())
             .with_state(handler_state)
             .layer(
                 TraceLayer::new_for_http()
