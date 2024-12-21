@@ -1,3 +1,5 @@
+use std::env;
+use axum_server::tls_rustls::RustlsConfig;
 use receipt_repository_api::services::v1::commands::command_service::CommandService;
 use receipt_repository_api::share_state::HandlerState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -5,7 +7,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use receipt_repository_api::configuration::app_config;
 use receipt_repository_api::repository::DbRepository;
 use receipt_repository_api::router::AppRouter;
-use receipt_repository_api::listener::AppListener;
 use receipt_repository_api::application::Application;
 
 #[tokio::main]
@@ -35,7 +36,13 @@ async fn main() {
     let sender = CommandService::run(repository.clone(), config.get_writer_channel_buffer_size());
     let handler_state = HandlerState::new(repository, sender);
     let router = AppRouter::new(handler_state);
-    let listener = AppListener::new(config.get_address()).await.expect("TCP listener should be created successfully.");
-    let app = Application::new(router, listener);
+
+    let cur_path = env::current_dir().unwrap();
+    let tls_config = RustlsConfig::from_pem_file(
+        cur_path.join(config.get_tls_pem_folder_name()).join(config.get_tls_cert_name()), 
+        cur_path.join(config.get_tls_pem_folder_name()).join(config.get_tls_key_name())
+    ).await.unwrap();
+
+    let app = Application::new(router, config.get_address(), tls_config);
     app.run(config.get_allow_origins()).await;
 }

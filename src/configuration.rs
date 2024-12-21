@@ -21,7 +21,10 @@ pub struct AppConfig {
     log_directory: String,
     log_prefix: String,
     writer_channel_buffer_size: usize,
-    allow_origins: Vec<String>
+    allow_origins: Vec<String>,
+    tls_pem_folder_name: String,
+    tls_cert_name: String,
+    tls_key_name: String
 }
 
 impl AppConfig {
@@ -36,7 +39,10 @@ impl AppConfig {
             log_directory: get_env("LOG_DIRECTORY")?,
             log_prefix: get_env("LOG_PREFIX")?,
             writer_channel_buffer_size: get_env("WRITER_CHANNEL_BUFFER_SIZE")?.parse().unwrap(),
-            allow_origins: (|| {get_env("ALLOW_ORIGINS").unwrap().split(",").map(|o| { o.to_string() }).collect::<Vec<String>>() } )()
+            allow_origins: (|| {get_env("ALLOW_ORIGINS").unwrap().split(",").map(|o| { o.to_string() }).collect::<Vec<String>>() } )(),
+            tls_pem_folder_name: get_env("TLS_PEM_FILES_FOLDER")?,
+            tls_cert_name: get_env("TLS_CERT_FILE_NAME")?,
+            tls_key_name: get_env("TLS_KEY_FILE_NAME")?
         })
     }
 
@@ -70,6 +76,18 @@ impl AppConfig {
 
     pub fn get_allow_origins(&self) -> &Vec<String> {
         self.allow_origins.as_ref()
+    }
+
+    pub fn get_tls_pem_folder_name(&self) -> &str {
+        self.tls_pem_folder_name.as_ref()
+    }
+
+    pub fn get_tls_cert_name(&self) -> &str {
+        self.tls_cert_name.as_ref()
+    }
+
+    pub fn get_tls_key_name(&self) -> &str {
+        self.tls_key_name.as_ref()
     }
 }
 

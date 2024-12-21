@@ -1,4 +1,6 @@
 use axum::{extract::State, Json};
+use tower_cookies::cookie::time::Duration;
+use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 use crate::error::Error;
 use crate::models::v1::loginout::login_payload::{LoginPayload, LoginResponse};
@@ -17,7 +19,14 @@ impl LoginoutHandlers {
         }
 
         //TODO: add actual auth token
-        cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
+        let mut c = Cookie::new(AUTH_TOKEN, "user-1.exp.sign");
+        c.set_max_age(Duration::hours(1));
+        c.set_same_site(SameSite::Strict);
+        c.set_secure(true);
+        c.set_http_only(true);
+        c.set_path("/");
+        c.set_domain(".app.localhost");
+        cookies.add(c);
 
         Ok(Json(LoginResponse {
             success: true,

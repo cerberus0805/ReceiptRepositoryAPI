@@ -1,20 +1,25 @@
+use std::net::SocketAddr;
+use std::str::FromStr;
+
+use axum_server::tls_rustls::RustlsConfig;
 use http::{HeaderValue, Method};
-use http::header::CONTENT_TYPE;
+use http::header::{ACCEPT, CONTENT_TYPE, COOKIE};
 use tower_http::cors::CorsLayer;
 
 use crate::router::AppRouter;
-use crate::listener::AppListener;
 
 pub struct Application {
     app_router: AppRouter,
-    app_listener: AppListener
+    address: String,
+    tls_config: RustlsConfig
 }
 
 impl Application {
-    pub fn new(app_router: AppRouter, app_listener: AppListener) -> Self {
+    pub fn new(app_router: AppRouter, address: String, tls_config: RustlsConfig) -> Self {
         Self {
             app_router,
-            app_listener
+            address,
+            tls_config
         }
     }
 
@@ -26,8 +31,14 @@ impl Application {
             CorsLayer::new()
             .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
             .expose_headers([CONTENT_TYPE])
-            .allow_headers([CONTENT_TYPE])
+            .allow_headers([CONTENT_TYPE, ACCEPT, COOKIE])
+            .allow_credentials(true)
             .allow_origin(allow_origin_header_values);
-        axum::serve(self.app_listener.listener, self.app_router.router.layer(cors)).await.unwrap();
+
+        let addr = SocketAddr::from_str(self.address.as_str()).unwrap();
+        axum_server::bind_rustls(addr, self.tls_config)
+            .serve(self.app_router.router.layer(cors).into_make_service())
+            .await
+            .unwrap();
     }
 }
