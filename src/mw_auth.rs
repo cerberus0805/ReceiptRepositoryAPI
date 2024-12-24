@@ -1,4 +1,4 @@
-use crate::{error::Error, handlers::v1::loginout::loginout_handlers::AUTH_TOKEN};
+use crate::{error::Error, handlers::v1::loginout::loginout_handlers::SESSION_ID};
 use axum::{{body::Body, http::Request}, middleware::Next};
 use tower_cookies::Cookies;
 use axum::response::Response;
@@ -9,10 +9,10 @@ pub async fn mw_require_auth(
     req: Request<Body>, 
     next: Next
 ) -> Result<Response, Error> {
-    let auth_token = cookies.get(AUTH_TOKEN).map(|c| c.value().to_string());
-    info!("MIDDLEAWARE: {:#?}", auth_token);
-    //TODO: auth-token parsing and validation
-    auth_token.ok_or(Error::AuthFailNoAuthTokenCookie)?;
+    let session_id = cookies.get(SESSION_ID).map(|c| c.value().to_string());
+    info!("MIDDLEAWARE: {:#?}", session_id);
+    //TODO: session_id and validation
+    session_id.ok_or(Error::AuthFailNoAuthTokenCookie)?;
     
     Ok(next.run(req).await)
 }
